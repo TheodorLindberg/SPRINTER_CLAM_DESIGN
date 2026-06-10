@@ -47,5 +47,7 @@ Patient, biopsy, and scan form a strict hierarchy, so metadata at a coarser leve
 
 ## Genuinely open
 
+- **Single- vs multi-stain bundles.** A bundle's `stains` is a list, but the reference model (CLAM) is single-stain. Is a bundle always one stain (one model per stain — current assumption), or can one model consume several stains' bags per biopsy? This decides whether evaluation's per-bag → per-biopsy step is 1:1 or a real aggregation. Default: **single-stain** until a multi-stain architecture exists.
+- **Holdout ensembling policy.** Holdout patients are scored by all fold checkpoints; default is the **mean** prediction. Confirm vs. alternatives (median, best-fold, per-checkpoint kept).
 - **Combining input data sources in CLAM training preparation.** How to merge different input data sources when assembling CLAM training inputs is undecided.
 - **Exact bundle schema.** The schema shared by training and evaluation must be defined before implementation; deferred while the stage contracts settle.

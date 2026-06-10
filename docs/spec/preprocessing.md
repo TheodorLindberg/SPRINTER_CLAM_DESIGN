@@ -63,8 +63,11 @@ Per-row addressable; a run embeds only keys absent from the cache.
   outlines/{scan_id}.geojson -> symlink
 ```
 
-**manifest.csv** columns: `bag_id, biopsy_id, patient_id, dataset_id, stain, role, embedding_path, n_patches`.
-**labels.csv** columns: `biopsy_id, label_name, label_value, label_type`.
+**manifest.csv** columns: `bag_id, dataset_id, patient_id, biopsy_id, stain, role, embedding_path, n_patches`.
+**labels.csv** columns: `dataset_id, patient_id, biopsy_id, label_name, label_value, label_type`.
+
+!!! warning "Multi-dataset key"
+    `biopsy_id` is unique only within a patient, so labels and bags join on the **full `(dataset_id, patient_id, biopsy_id)`** key — never `biopsy_id` alone — or a pooled cohort would mismatch rows.
 
 ## Invariants
 

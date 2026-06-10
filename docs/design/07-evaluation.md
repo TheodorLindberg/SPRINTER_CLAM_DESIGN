@@ -1,8 +1,10 @@
 # Stage 5 · Evaluation
 
-Runs inference and saves results per scan, then aggregates the per-scan files into one **BEAM** file per biopsy per model. Heatmaps are produced separately in [Stage 6](08-heatmaps.md).
+Runs inference and writes one **BEAM** file per biopsy per **run** (a run = a trained model with per-fold checkpoints). Heatmaps are produced separately in [Stage 6](08-heatmaps.md).
 
-> **In** a bundle (chosen subset) + a trained model · **Out** one BEAM file per biopsy per model, + reports
+> **In** a bundle (chosen subset) + a trained run · **Out** one BEAM file per biopsy per run, + reports
+
+*Go deeper: [Specification](../spec/evaluation.md) · [Implementation](../impl/evaluation.md).*
 
 ```mermaid
 flowchart LR
@@ -25,6 +27,9 @@ flowchart LR
 
 !!! note "Two distinct scores"
     A **CV test score** (`development`, cross-validated) and a **holdout score** (`holdout`, the locked patients) are different numbers — keep them labeled as such. See [Cohorts, roles, and splits](02-data-model.md#cohorts-roles-and-splits).
+
+!!! warning "Checkpoint routing"
+    `development` patients are scored by their **out-of-fold** checkpoint (the fold where they were `test`); `holdout` patients are scored by **all** fold checkpoints, aggregated. This is the crux of BEAM generation — see the [spec](../spec/evaluation.md#checkpoint-routing-the-crux).
 
 ### Output
 

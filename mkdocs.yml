@@ -58,12 +58,14 @@ nav:
       - 2 · WSI Transformation: spec/wsi-transformation.md
       - 3 · Dataset Preprocessing: spec/preprocessing.md
       - 4 · Model Training: spec/training.md
+      - 5 · Evaluation (BEAM): spec/evaluation.md
   - Implementation:
       - Overview: impl/index.md
       - Snakemake workflow: impl/workflow.md
       - 2 · WSI Transformation: impl/wsi-transformation.md
       - 3 · Dataset Preprocessing: impl/preprocessing.md
       - 4 · Model Training: impl/training.md
+      - 5 · Evaluation (BEAM): impl/evaluation.md
   - Formats:
       - BEAM: formats/beam.md
       - Embeddings & Patches: formats/embeddings-and-patches.md

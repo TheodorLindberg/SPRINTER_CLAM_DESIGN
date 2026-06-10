@@ -115,6 +115,9 @@ Each id names a different **grain** — which is why several coexist rather than
 
 `scan_id` is the per-image unit (everything computed from a single slide); it is *derived* from `(biopsy_id, stain)`, not separately assigned.
 
+!!! note "Scope of short ids"
+    `biopsy_id` (and therefore `scan_id`) is unique only **within a patient**. Scan-level artifact paths are namespaced by `dataset/patient` (e.g. `processed/{dataset}/{patient}/…`), and joins use the full `(dataset_id, patient_id, biopsy_id)` key. `bag_id` and `bundle_id` are fully qualified and globally unique on their own.
+
 ### Bag naming
 
 A bag is identified by dataset origin, patient, biopsy, stain, patching configuration, source variant, and embedding model:

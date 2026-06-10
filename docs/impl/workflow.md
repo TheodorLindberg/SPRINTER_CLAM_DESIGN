@@ -59,8 +59,8 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
-| `infer` | scan | model + bundle (subset) → `results/evaluation/{eval}/per_scan/{scan}.h5` |
-| `aggregate_beam` | biopsy × model | per-scan H5 → `…/beam/{biopsy}__{model}.beam.h5` |
+| `infer` | bag (per patient) | run + bundle (subset) → per-bag predictions/attention, via [out-of-fold / ensemble checkpoint routing](../spec/evaluation.md#checkpoint-routing-the-crux) |
+| `aggregate_beam` | biopsy × run | per-bag results → `…/beam/{biopsy}__{run_id}.beam.h5` |
 
 ### Stage 6 · Heatmaps — `heatmaps.yaml`
 
