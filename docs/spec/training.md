@@ -2,9 +2,9 @@
 
 Contracts for [Stage 4](../design/06-model-training.md). [Overview](../design/06-model-training.md) · **Specification** · [Implementation](../impl/training.md).
 
-## Fold assignment (generated at train time)
+## Fold assignment (the `generate_folds` rule)
 
-Per `(seed_set, fold_seed)` — **and `target`** when folds are stratified — over the **development** patients only:
+Generated **once** per `(seed_set, fold_seed)` — **and `target`** when stratified — over the **development** patients only, and written to a CSV. Every model in the sweep **reads the same CSV**; `train_run` takes the fold assignment as input and never re-derives it from a seed (so folds can't drift between models).
 
 !!! warning "Stratified folds are target-dependent"
     Stratifying by the target makes the split depend on it, so "identical splits across models sharing a `seed_set`" holds only for runs sharing the **same target**. That is exactly what aligns folds across stains predicting the *same* score. Key the fold artifact by `(seed_set, target, fold_seed)`; use an unstratified (pure patient) split if target-independent folds are wanted.
@@ -15,7 +15,7 @@ Per `(seed_set, fold_seed)` — **and `target`** when folds are stratified — o
 | `fold` | int | `0 … n_folds-1` |
 | `split` | enum | `train` / `val` / `test` (per the active fold) |
 
-Stored alongside the run; **not** in the bundle.
+Stored at `results/folds/…` and read by every run of that fold_seed; **not** in the bundle.
 
 ## Run record (`run.json`, one per run)
 
