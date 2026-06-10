@@ -2,6 +2,8 @@
 
 Turns normalized scans and their transformation outputs into patch embeddings, then packages everything a single training or evaluation run needs into a **bundle**.
 
+> **In** scans, tissue outlines, source labels · **Out** cached patch embeddings + bundles (prepared cohorts)
+
 ```mermaid
 flowchart LR
     L[Label processing] --> BN

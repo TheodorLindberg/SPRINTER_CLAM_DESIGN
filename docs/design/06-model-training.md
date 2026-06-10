@@ -1,6 +1,8 @@
 # Stage 4 · Model Training
 
-A bundle is either **evaluated against an existing model** or used to **train new ones**. Training is defined as an **experiment** that fans out into many runs.
+Trains MIL models from a bundle. A **model experiment** defines the runs, which fan out over the seed sweep; HPO is a separate search. (Evaluation-only runs skip this stage and go straight to [Stage 5](07-evaluation.md).)
+
+> **In** a bundle (`development` subset) + a `seed_set` · **Out** per-fold checkpoints, metrics, run records
 
 ```mermaid
 flowchart TD
@@ -82,11 +84,15 @@ Training supports correcting for imbalanced targets, configured per run:
 
 Balancing is applied **per fold, from the training split only** — consistent with the [no-fitted-statistics rule](05-dataset-preprocessing.md) — so it never leaks distribution information from validation or held-out data.
 
+---
+
 ## Augmentation
 
 Augmentation is **not** a training concern in this pipeline. Meaningful histology augmentation (flips, rotations, stain/color jitter) changes the pixels the embedding model sees, so it must run the **foundation model** on the augmented patches — that happens in [Dataset Preprocessing](05-dataset-preprocessing.md#augmentation), where each augmented variant is embedded and cached as its own set.
 
 Training only decides **whether to sample** those augmented embedding sets (`use_augmented_embeddings` in [`model_experiment.yaml`](../configs/model_experiment.md)).
+
+---
 
 ## Metrics by label type
 

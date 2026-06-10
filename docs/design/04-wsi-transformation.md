@@ -2,6 +2,8 @@
 
 Raw scans carry arbitrary per-stain rotation and translation, so tissue does not align across stains. This stage corrects that through registration, and detects the tissue outlines patch generation will use.
 
+> **In** normalized scans (via the manifest) · **Out** raw / rigid / elastic variants + transformation matrices, and tissue outlines
+
 It is kept as its own stage because registration is expensive and its outputs are reused across every downstream patch and embedding configuration.
 
 ---

@@ -2,6 +2,8 @@
 
 Normalizes a raw dataset into the standardized format the rest of the pipeline consumes.
 
+> **In** raw dataset files (WSIs + source labels) · **Out** normalized scans, a [scan manifest](#scan-manifest-the-contract), a per-biopsy label CSV
+
 This stage sits **outside Snakemake**: every dataset arrives differently, so each user writes their own bridge to produce the normalized structure. We supply a ready-made ingester only for our own input dataset; others implement to the same contract.
 
 ---
@@ -31,7 +33,7 @@ This metadata is **carried through preprocessing and forwarded into the bundle a
 
 ## Labels
 
-Alongside the scans, a CSV holds per-biopsy labels keyed by patient, biopsy, and stain:
+Alongside the scans, a CSV holds per-biopsy labels keyed by patient, biopsy, and stain. The set is dataset-specific; for this project:
 
 - Proliferation / expression scores **per quartile** (4 per biopsy). Region information is unavailable, so these are averaged in a later step.
 - Gleason grade.
@@ -44,8 +46,6 @@ Labels are optional — an evaluation-only dataset may ship without them.
 ## Bag naming inputs
 
 Ingestion establishes the identifiers a bag is later built from: dataset origin, patient index, biopsy index, and staining method. The remaining components (patching configuration, source variant, embedding model) are assigned downstream. See [Data Model · Bag naming](02-data-model.md#bag-naming).
-
----
 
 ---
 

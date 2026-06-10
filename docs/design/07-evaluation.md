@@ -2,6 +2,8 @@
 
 Runs inference and saves results per scan, then aggregates the per-scan files into one **BEAM** file per biopsy per model. Heatmaps are produced separately in [Stage 6](08-heatmaps.md).
 
+> **In** a bundle (chosen subset) + a trained model · **Out** one BEAM file per biopsy per model, + reports
+
 ```mermaid
 flowchart LR
     INF[Inference\nper-scan H5] --> AGG[Aggregate\nper-biopsy, per-model]

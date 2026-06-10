@@ -2,6 +2,8 @@
 
 Renders attention and prediction heatmaps from a [BEAM file](07-evaluation.md#the-beam-format) over a chosen source variant, for both static figures and interactive inspection in TissUUmaps.
 
+> **In** BEAM + WSI variant + transformation matrix + outline · **Out** static PNG + TissUUmaps GeoJSON layer
+
 ```mermaid
 flowchart LR
     BEAM[BEAM file\n.beam.h5] --> H
