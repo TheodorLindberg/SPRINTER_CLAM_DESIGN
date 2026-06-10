@@ -37,7 +37,7 @@ Binary is the source of truth; GeoJSON is the TissUUmaps view (pipeline never co
 
 ## Configuration
 
-Draft per-stage Snakemake configs in `configs/` (wsi_transformation, preprocessing, training, evaluation, heatmaps) + `seeds.yaml` split registry. All marked DRAFT. Overview in `docs/design/10-configuration.md`. Per-file (not monolithic) because stages run individually; single merged config left as an open alternative.
+Draft per-stage Snakemake configs in `docs/configs/` (wsi_transformation, preprocessing, training, evaluation, heatmaps) + `seeds.yaml` split registry. All marked DRAFT. Overview in `docs/design/10-configuration.md`. Per-file (not monolithic) because stages run individually; single merged config left as an open alternative.
 - Label balancing + augmentation live in `training.yaml` / Stage 4 doc. Augmentation defaults to bag/embedding level because embeddings are cached — image-space augmentation would require re-embedding under new cache keys.
 
 ## Six stages
@@ -53,4 +53,4 @@ Draft per-stage Snakemake configs in `configs/` (wsi_transformation, preprocessi
 
 Design: `01-overview` · `02-data-model` · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration`
 Formats: `docs/formats/{beam,embeddings-and-patches,outlines}.md`
-Configs: `configs/*.yaml` (drafts)
+Configs: `docs/configs/*.yaml` (drafts)

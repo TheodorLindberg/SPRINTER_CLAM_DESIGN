@@ -1,0 +1,17 @@
+# Stage 2 · WSI Transformation — DRAFT
+# Registration + tissue outline detection. See design/04-wsi-transformation.md.
+
+dataset_id: example_dataset_v1
+input_manifest: data/normalized/example_dataset_v1/manifest.csv
+
+variants: [raw, rigid, elastic]   # which source variants to produce
+
+registration:
+  method: valis                   # registration backend
+  reference_stain: HE             # IHC stains are aligned to this
+
+outlines:
+  per_stain: true
+  cross_stain_intersection: true  # from the elastic overlap, saved per scan
+  quartile_subdivision: true      # geometric split along biopsy long axis
+  geojson_export: true            # export for TissUUmaps viewing

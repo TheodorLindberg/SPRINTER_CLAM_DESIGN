@@ -1,0 +1,29 @@
+# Stage 3 · Dataset Preprocessing — DRAFT
+# Label processing, patching, embedding, bundle preparation.
+# See design/05-dataset-preprocessing.md.
+
+dataset_id: example_dataset_v1
+source_variant: raw               # training/metrics always use raw
+
+labels:
+  derived:                        # extendable per dataset
+    - { name: ki67_avg,  type: continuous, from: ki67_quartiles, op: mean }
+    - { name: ki67_high, type: binary,     from: ki67_avg,       threshold: 20 }
+
+patching:
+  patch_size: 256
+  resolution_mpp: 0.5
+  overlap: 0.0                    # stride derived from this
+
+embedding:
+  model: example_embedder_v1
+  cache: content_addressed        # key: coords + size + resolution + model + variant
+
+bundle:
+  include_labels: true            # false for label-free evaluation bundles
+  embeddings: symlink             # symlink | copy
+
+# Patient exclusion → produces 3 bundles: training / full / held-out
+patient_exclusion:
+  enabled: true
+  exclude: [p012, p034, p067]     # fully kept out of training
