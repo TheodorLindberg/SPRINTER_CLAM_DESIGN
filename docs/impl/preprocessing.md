@@ -23,8 +23,8 @@ for (x, y) in grid(outline.bounds, step):
 ## Embedding
 
 ```python
-model = load_model(embedding_model_id)            # registry: resnet*, uni2_h, conch, gigapath
-slide = open_zarr(wsi_path)                        # tifffile→zarr; no full decompress
+model = load_model(embedding_model_id)            # registry entry: load(pretrained)->nn.Module + NORM
+slide = open_slide(wsi_path)                       # OME-TIFF→tifffile/zarr; NDPI→openslide
 for batch in batched(coords):
     imgs = [read_patch(slide, x, y, patch_size, level) for x, y in batch]
     imgs = normalize(imgs, model.NORM)             # model's own mean/std (not cohort-fitted)
@@ -42,7 +42,7 @@ Compute the [key](../spec/preprocessing.md#cache-key) per scan-config; diff requ
 
 ### Augmentation
 
-For each configured transform set (flip / rotate90 / stain-jitter in HED space), apply to the patch image **before** embedding and cache under a distinct `augmentation_id`. `n_variants` controls how many augmented copies per patch. The foundation model runs here, never in the training loop.
+Each configured augmentation — **rotation** (90/180/270) and **colour jitter** (brightness/contrast/saturation/hue) are the proven baseline — is applied to the patch image **before** embedding, then cached under its own `augmentation_id`. `n_variants` sets how many augmented copies per patch. Flips and stain-space (HED) jitter slot into the same `torchvision`-style transform pipeline. The foundation model runs here, never in the training loop.
 
 ## Bundle assembly
 

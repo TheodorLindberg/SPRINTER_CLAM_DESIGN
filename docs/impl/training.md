@@ -32,8 +32,8 @@ aggregate_runs_parquet()
 
 1. Build fold assignments (above). For each fold:
 2. **Fit normalization on the train fold only** (regression target mean/std; class weights / bin balancing from the train split).
-3. MIL forward: bag of embeddings → pooling (**CLAM** attention, **non-CLAM** mean-pool, or a **regression** head) → prediction.
-4. Loss: Huber (regression) / cross-entropy (classification). Optimizer: AdamW. Early-stop on the val metric.
+3. MIL forward: bag of embeddings → pooling → prediction.
+4. Loss + optimizer per family (see below). Early-stop on the val metric.
 5. Log per-epoch train/val metrics; evaluate the fold's `test` split.
 6. Save `fold_k` checkpoint + history.
 
@@ -45,7 +45,14 @@ Computed per fold from the train split: class weights or weighted/over/under-sam
 
 ### Architecture families
 
-`family → type → params`. Reference adapter for **CLAM**: feed bundle bags (no filename/symlink hacks — read paths from the manifest) and the fold assignment; expose attention for [evaluation](../design/07-evaluation.md).
+`family → type → params`:
+
+- **`clam`** — **classification** MIL (attention). Real knobs: `model_type` (`clam_sb`/`clam_mb`), `model_size`, `bag_loss: ce`, `inst_loss: svm`, `bag_weight`, instance-cluster `B`, `drop_out`; optimizer `adam`. The adapter feeds bundle bags **read from the manifest** (no filename/symlink hacks) plus the fold assignment, and exposes attention for [evaluation](../design/07-evaluation.md).
+- **`non_clam`** — attention-free mean-pool MIL baseline.
+- **`regression`** — a continuous-target MIL head (Huber/MSE, AdamW). **New** — CLAM is classification-only, so a regression target either uses this head or is binned into classes for a CLAM run.
+
+!!! note "Proven vs. new"
+    The CLAM classification path and the embedding/bag inputs are proven in the reference code. The **regression head**, **AdamW**, and **Optuna HPO** below are new additions in this design — feasible, but not yet exercised end-to-end.
 
 ## HPO (separate)
 

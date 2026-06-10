@@ -15,6 +15,9 @@ HE is the reference slide; all stains register to it.
 !!! note "Determinism"
     Pin feature-detector and RANSAC seeds where the backend exposes them; record the VALIS version in the transform metadata so warps are reproducible.
 
+!!! warning "Persist the transform for heatmaps"
+    Because training is on `raw` but heatmaps render on a registered underlay, the `raw → variant` mapping must be **saved**, not just used to warp the image once. Persist the VALIS registration (affine + non-rigid field) so attention coordinates can be warped later with `warp_tools.warp_xy`. This is a new requirement: when models train directly on registered images, coordinates are already in the shared frame and no later warp is needed.
+
 ## Mask & outline extraction
 
 Per scan, at a low pyramid level:

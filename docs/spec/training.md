@@ -35,6 +35,8 @@ All run records aggregate into **`runs.parquet`** — one row per run, columns =
 | Regression | MAE, Spearman, R², Huber loss |
 | Binary / classification | AUROC, accuracy, F1 (+ as appropriate) |
 
+The architecture family fixes which apply: a `clam` / `non_clam` run is classification (binned target if the label is continuous) and emits the classification metrics; a `regression` run emits the regression metrics.
+
 ## Invariants
 
 - No patient appears in more than one of `train` / `val` / `test` within a fold (patient-level).
