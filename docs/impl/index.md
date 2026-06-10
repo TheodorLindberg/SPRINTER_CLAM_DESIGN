@@ -6,6 +6,7 @@ This layer can change without changing the contract — as long as the [spec](..
 
 ## Pages
 
+- [Snakemake workflow](workflow.md) — every rule, its dependencies, and the config that drives it.
 - [WSI Transformation](wsi-transformation.md) — VALIS registration, mask + outline extraction, the PCA biopsy-axis algorithm.
 - [Dataset Preprocessing](preprocessing.md) — patching, embedding, the content-addressed cache, bundle assembly.
 - [Model Training](training.md) — fold generation, the training loop, balancing, HPO.

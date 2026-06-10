@@ -15,6 +15,8 @@ Snakemake drives most of the pipeline. It was chosen for:
 
 Stage 1 (Data Ingestion) sits *outside* Snakemake: each dataset needs its own bridge to reach the normalized format, so this part is user-written. Everything downstream is orchestrated by Snakemake.
 
+*See the [Snakemake workflow](../impl/workflow.md) for every rule, its dependencies, and the config that drives it.*
+
 ---
 
 ## The six stages

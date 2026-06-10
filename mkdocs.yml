@@ -59,6 +59,7 @@ nav:
       - 4 · Model Training: spec/training.md
   - Implementation:
       - Overview: impl/index.md
+      - Snakemake workflow: impl/workflow.md
       - 2 · WSI Transformation: impl/wsi-transformation.md
       - 3 · Dataset Preprocessing: impl/preprocessing.md
       - 4 · Model Training: impl/training.md
