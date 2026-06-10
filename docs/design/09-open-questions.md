@@ -23,18 +23,6 @@ Three options were considered:
 
 ---
 
-## Normalized format: folders vs. flat {#normalized-format-folders-vs-flat}
-
-**Recommended default: support both; make the manifest the contract.**
-
-Rather than picking one layout as canonical, the pipeline should **not depend on the on-disk layout at all**. Ingestion emits a manifest of IDs → file paths, and every downstream stage reads that. The folder hierarchy (`patient_<x>/biopsy_<x>/scan_<stain>`) becomes the *suggested* human-facing convention, while a flat naming scheme remains valid because only the manifest is load-bearing.
-
-This dissolves the either/or and keeps user-written ingesters flexible.
-
-**Still open:** the exact manifest schema (the pre-preprocessing structure).
-
----
-
 ## Holdout leakage {#patient-exclusion-leakage}
 
 **Recommended default: no fitted statistics in bundles + holdout filtered from all folds.**

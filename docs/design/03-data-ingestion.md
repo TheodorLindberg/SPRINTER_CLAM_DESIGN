@@ -10,24 +10,36 @@ This stage sits **outside Snakemake**: every dataset arrives differently, so eac
 
 ## Normalized structure
 
-A folder hierarchy is the suggested convention, mirroring the entity hierarchy:
+Ingestion produces two things: the scan files and a **scan manifest**. The manifest is the pipeline's only interface — **the on-disk layout is free**, because no stage parses the directory structure.
+
+A folder hierarchy mirroring the entity hierarchy is the suggested convention:
 
 ```text
 patient_<x>/
   biopsy_<x>/
-    scan_<stain>.<ext>      # <ext> = any OpenSlide-supported format
+    <stain>.<ext>      # <ext> = any OpenSlide-supported format
 ```
 
-A flat naming convention is also viable. **The pipeline does not depend on the on-disk layout** — it reads a generated manifest of IDs → paths (see [decision in Open Questions](09-open-questions.md#normalized-format-folders-vs-flat)). Folders vs. flat is therefore a presentation choice for the ingester, not a pipeline constraint.
+A flat layout works equally well; folders vs. flat is the ingester's choice.
 
 ## Scan manifest (the contract)
 
-The manifest is the real interface to the pipeline: one row per scan, mapping entity ids → WSI path, plus any metadata columns.
+One row per scan — the entity ids, the WSI path, and any metadata columns:
 
-- **Keys:** `dataset_id`, `patient_id`, `biopsy_id`, `stain`, `scan_id`, and the WSI path.
-- **Metadata, at any level:** extra columns describe the patient, biopsy, or scan (e.g. age, site, scanner, stain details). A column's *level* is just which entity it describes — patient-level values simply repeat across that patient's rows. No separate metadata file is needed.
+| Column | Role |
+|---|---|
+| `dataset_id` | dataset source (+ optional version) |
+| `patient_id` | unique within the dataset |
+| `biopsy_id` | unique within the patient |
+| `stain` | `HE` / `Ki67` / `PSA` |
+| `wsi_path` | path to the scan file |
+| *(any others)* | metadata, at any level — see below |
 
-This metadata is **carried through preprocessing and forwarded into the bundle and the [BEAM](../formats/beam.md) file**, so it is available everywhere downstream (reports, heatmaps) without re-joining to the original source. See the [resolved metadata decision](09-open-questions.md#metadata-file-scope).
+A scan is identified by **`(biopsy_id, stain)`** — a biopsy has at most one scan per stain, so there is **no separate `scan_id`**. Where a single-token handle is convenient (paths, filenames) it is just `{biopsy_id}__{stain}`.
+
+### Metadata, at any level
+
+Extra columns describe the patient, biopsy, or scan (age, site, scanner, stain details, …). A column's *level* is simply which entity it describes — patient-level values repeat across that patient's rows; no separate metadata file is needed. This metadata is **carried through preprocessing and forwarded into the bundle and the [BEAM](../formats/beam.md) file**, so it reaches reports and heatmaps without re-joining the source. See the [metadata decision](09-open-questions.md#metadata-file-scope).
 
 ---
 

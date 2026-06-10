@@ -90,7 +90,7 @@ All identifiers are stable and recorded in manifests, never inferred from filena
 | `dataset_id` | Names the dataset **source**, optionally with a version (e.g. `sahlgrenska_2018`). Never `latest`. |
 | `patient_id` | Unique within dataset |
 | `biopsy_id` | Unique within patient |
-| `scan_id` | One per (biopsy, stain) |
+| `scan_id` | **Derived** `{biopsy_id}__{stain}` — a scan is keyed by `(biopsy_id, stain)`, not a separately assigned id |
 | `patch_config_id` | Patch size, resolution, overlap/stride |
 | `source_variant` | `raw` / `rigid` / `elastic` |
 | `embedding_model_id` | Model name + version |
