@@ -1,11 +1,7 @@
-# Stage 6 · Heatmap Generation — DRAFT
-# See design/08-heatmaps.md.
+# Stage 6 · Heatmap Generation — DRAFT.
 
-beam_dir: runs/evaluation/ki67_avg_clam__heldout_v1
+beam_dir: results/evaluation/he_lr1e4__holdout_v1
 source_variant: elastic           # raw | rigid | elastic (underlay alignment)
-# Attention is in the RAW frame — coords are pushed through this variant's
-# transformation matrix before overlay.
-
 attention_type: rank              # rank | sigmoid | raw  (rank = robust default)
 colormap: viridis                 # perceptually uniform
 

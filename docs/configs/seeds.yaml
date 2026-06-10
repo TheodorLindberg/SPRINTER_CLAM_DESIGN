@@ -1,21 +1,17 @@
-# Split registry — DRAFT
-# One per project. Defines every named seed/split configuration, indexed by name.
-# A seed set references a COHORT (not a dataset): folds are assigned over that
-# cohort's DEVELOPMENT patients. Holdout patients never enter a fold.
-# All models sharing a name get identical splits. See design/06-model-training.md.
+# Split registry — DRAFT. Named seed/split sets, each over a cohort's development patients.
 
 seed_sets:
 
   prostate_main:                  # referenced as `seed_set: prostate_main`
-    cohort: prostate_combined_v1  # splits computed over its development patients
+    cohort: prostate_combined_v1
     split_level: patient          # patient | biopsy
     n_folds: 5
-    fold_seeds: [0, 1, 2, 3, 4]
-    model_seeds: [100, 200, 300]
+    fold_seeds:  [0, 1, 2, 3, 4]  # each gives a different train/val/test partition
+    model_seeds: [100, 200, 300]  # each gives a different weight init
 
   prostate_quicktest:             # smaller set for fast iteration
     cohort: prostate_combined_v1
     split_level: patient
     n_folds: 3
-    fold_seeds: [0]
+    fold_seeds:  [0]
     model_seeds: [100]

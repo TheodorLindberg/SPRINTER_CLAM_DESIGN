@@ -1,21 +1,19 @@
-# Reports — DRAFT
-# Reports are a regenerable VIEW over manifests / runs.parquet / BEAM — they store
-# no new truth. Inherits roots from base.yaml. See design/11-reports.md.
+# Reports — DRAFT. A regenerable view over manifests / runs.parquet / BEAM.
 
 plots: plotly                    # interactive, self-contained
 css: report_assets/reports.css   # standalone stylesheet (no MkDocs dependency)
 layout: hybrid                   # self-contained run folders + cross-linking indexes
 
 hpo:
-  separate_index: true           # HPO gets its OWN index, kept apart from the seed sweep
-  keep_checkpoints: top_n        # all | top_n | none — HPO models are rarely revisited
-  top_n: 3                       # promote best N → run a seed sweep on them
+  separate_index: true           # HPO index kept apart from the seed sweep
+  keep_checkpoints: top_n        # all | top_n | none
+  top_n: 3
 
 tables:
   export_buttons: [csv, json]    # client-side export of the displayed table
   link_backing_artifact: true    # also link the canonical CSV/Parquet behind each table
 
-include:                         # which report sections to build
+include:                         # report sections to build
   dataset_distribution: true
   cohort_composition: true
   fold_composition: true

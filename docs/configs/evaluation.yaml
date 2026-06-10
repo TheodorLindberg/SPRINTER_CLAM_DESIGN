@@ -1,13 +1,11 @@
-# Stage 5 · Evaluation — DRAFT
-# See design/07-evaluation.md.
+# Stage 5 · Evaluation — DRAFT. Produces one BEAM file per biopsy per model.
 
 bundle: prostate_combined_v1__sHE__raw__conch
-model: results/experiments/ki67_stain_comparison/sweep/he_lr1e4   # checkpoints, folds, arch
-subset: holdout                         # holdout | development (CV test) | all
-evaluation_tag: holdout_v1              # readable run name
+model:  results/experiments/ki67_stain_comparison/sweep/he_lr1e4   # checkpoints, folds, arch
+subset: holdout                   # holdout | development (CV test) | all
+evaluation_tag: holdout_v1
 
-attention: [raw, sigmoid, rank]         # which attention variants to write to BEAM
-include_embeddings: false               # store embeddings in BEAM, or reference bundle
+attention: [raw, sigmoid, rank]   # attention variants written to BEAM
+include_embeddings: false         # store embeddings in BEAM, or reference the bundle
 
-output_dir: runs/evaluation/ki67_avg_clam__holdout_v1
-# Produces one BEAM file per biopsy per model: {biopsy_id}__{model_id}.beam.h5
+output_dir: results/evaluation/he_lr1e4__holdout_v1

@@ -1,6 +1,14 @@
 # Stage 2 · `wsi_transformation.yaml`
 
-Which source variants to produce, the registration backend, and outline options — including the geometric quartile subdivision and the GeoJSON export for TissUUmaps. See [Stage 2 · WSI Transformation](../design/04-wsi-transformation.md).
+Registration and tissue-outline detection: which [source variants](../design/02-data-model.md#source-variants) to produce, the registration backend, and outline options. See [Stage 2 · WSI Transformation](../design/04-wsi-transformation.md).
+
+**Key fields**
+
+- `variants` — which of `raw` / `rigid` / `elastic` to produce. Training uses `raw`; registered variants serve [heatmaps](../design/08-heatmaps.md).
+- `registration.reference_stain` — the stain IHC stains are aligned to (H&E).
+- `outlines.cross_stain_intersection` — the region with tissue in every stain, from the elastic overlap; saved per scan.
+- `outlines.quartile_subdivision` — geometric split of the outline along the biopsy's long axis (see [Outlines](../formats/outlines.md)).
+- `outlines.geojson_export` — also emit GeoJSON for TissUUmaps.
 
 ```yaml title="wsi_transformation.yaml"
 --8<-- "wsi_transformation.yaml"

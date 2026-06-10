@@ -1,8 +1,4 @@
-# Cohort registry — DRAFT
-# Project-wide. A cohort is a named, possibly multi-dataset group of patients.
-# Within a cohort each patient has a ROLE: development (cross-validation happens here)
-# or holdout (locked away, evaluated once). Splits and bundles both derive from a cohort.
-# See design/02-data-model.md#cohorts-roles-and-splits.
+# Cohort registry — DRAFT. Named patient groups; each patient has a role.
 
 cohorts:
 
@@ -11,10 +7,10 @@ cohorts:
       - { dataset: sahlgrenska_2018, patients: all }
       - { dataset: umea_2018,        patients: all }
 
-    holdout:                        # these patients get the holdout role; the rest = development
+    holdout:                        # these patients get the holdout role; rest = development
       explicit:
         - { dataset: umea_2018,        patient: p003 }
         - { dataset: sahlgrenska_2018, patient: p041 }
-      # Alternative — choose holdout deterministically instead of listing:
+      # or choose deterministically instead of listing:
       # fraction: 0.10
       # seed: 7

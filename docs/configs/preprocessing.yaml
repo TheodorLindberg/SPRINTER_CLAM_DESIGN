@@ -1,11 +1,7 @@
-# Stage 3 · Dataset Preprocessing — DRAFT
-# Two parts: (1) heavy per-scan work that is cached, (2) cheap bundle assembly.
-# See design/05-dataset-preprocessing.md.
-
-# --- (1) Heavy work — patch + embed, cached per scan. Independent of cohorts. ---
+# Stage 3 · Dataset Preprocessing — DRAFT. (1) cached per-scan work, (2) bundle assembly.
 
 labels:
-  derived:                        # extendable per dataset
+  derived:                        # derived from raw scores; extendable per dataset
     - { name: ki67_avg,  type: continuous, from: ki67_quartiles, op: mean }
     - { name: ki67_high, type: binary,     from: ki67_avg,       threshold: 20 }
 
@@ -17,9 +13,7 @@ patching:
 embedding:
   model: example_embedder_v1
   cache: content_addressed        # key: coords + size + resolution + model + variant + aug
-  # Augmentation lives here because it runs the foundation model on augmented
-  # patches and caches each variant as its own embedding set.
-  augmentation:
+  augmentation:                   # image-space; runs the foundation model, cached separately
     enabled: true
     transforms:
       horizontal_flip: true
@@ -28,15 +22,10 @@ embedding:
       stain_jitter: 0.1           # HED color jitter
     n_variants: 2                 # augmented embedded copies per patch
 
-# --- (2) Bundle assembly — a bundle is a PREPARED COHORT. ---
-# Cheap; run repeatedly for different stains/embeddings. The bundle materializes every
-# patient of the cohort, each bag tagged with its role development/holdout (from
-# cohorts.yaml). No folds here — those are assigned at training time. Stages pick a subset.
-
-bundle:
-  cohort: prostate_combined_v1        # from cohorts.yaml — a bundle is this cohort, prepared
-  stains: [HE]                        # which stain(s) this bundle carries
+bundle:                           # a bundle is a PREPARED COHORT (one per stain/embedding/variant)
+  cohort: prostate_combined_v1
+  stains: [HE]
   embedding_model: example_embedder_v1
-  source_variant: raw                 # raw for training/metrics
-  include_labels: true                # false for label-free evaluation bundles
-  embeddings: symlink                 # symlink | copy
+  source_variant: raw             # raw for training/metrics
+  include_labels: true            # false for label-free evaluation bundles
+  embeddings: symlink             # symlink | copy
