@@ -24,14 +24,14 @@ run_id, model_experiment, bundle_id, cohort_id
 target, subset, seed_set, fold_seed, model_seed
 architecture { family, type, params }
 hyperparameters { ... }
-target_normalization { per fold: mean, std | class_map }   # fit on the train fold only
+target_normalization { enabled, per fold: mean, std | class_map }   # if enabled, fit on the train fold only
 metrics { train, val, test: {<metric>: value} }
 checkpoints { fold_k: path }
 membership_hash, git_commit, started_at, finished_at
 ```
 
-!!! warning "Persist the target normalization"
-    A regression model predicts in **normalized** target space. The per-fold `mean`/`std` (fit on that fold's train split) must be stored so evaluation can **de-normalize** predictions back to label units — and so a holdout ensemble de-normalizes *per checkpoint* before averaging.
+!!! note "Target normalization is optional"
+    Controlled by `target_normalization` (default **on**). When **on**, a regression model predicts in normalized space, so the per-fold `mean`/`std` (fit on that fold's train split) **must be stored** — evaluation de-normalizes back to label units, *per checkpoint* before a holdout ensemble averages. When **off** (e.g. to compare), the model trains and predicts directly in raw label units and nothing is stored or de-normalized.
 
 All run records aggregate into **`runs.parquet`** — one row per run, columns = the flattened tags + headline metrics + paths. This is the report backbone and the export table.
 

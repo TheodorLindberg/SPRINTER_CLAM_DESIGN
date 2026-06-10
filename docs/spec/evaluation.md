@@ -39,7 +39,7 @@ A whole-scan bag is one `(biopsy, stain)` → one prediction → one BEAM (**1:1
 - BEAM `patches/coords` equal the bundle embedding coords (same raw frame, same order).
 - `development`: each patient's prediction uses **exactly** its out-of-fold checkpoint.
 - `/attention` exists **iff** the architecture is attention-based.
-- `prediction` is in **label units** — de-normalized using the run's per-checkpoint `target_normalization` (regression).
+- `prediction` is in **label units** — de-normalized using the run's per-checkpoint `target_normalization` when it was enabled; otherwise the model already outputs label units.
 
 ## Acceptance criteria
 

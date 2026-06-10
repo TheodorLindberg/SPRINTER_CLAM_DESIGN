@@ -31,7 +31,7 @@ aggregate_runs_parquet()
 ## Training a run
 
 1. Build fold assignments (above). For each fold:
-2. **Fit normalization on the train fold only** (regression target mean/std; class weights / bin balancing from the train split).
+2. If `target_normalization` (default on), **fit the target mean/std on the train fold only** and store it; if off, train in raw label units. Class weights / bin balancing are always from the train split.
 3. MIL forward: bag of embeddings → pooling → prediction.
 4. Loss + optimizer per family (see below). Early-stop on the val metric.
 5. Log per-epoch train/val metrics; evaluate the fold's `test` split.

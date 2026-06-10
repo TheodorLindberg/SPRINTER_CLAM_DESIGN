@@ -10,6 +10,7 @@ Shared `defaults` plus an explicit list of **runs**, each with a `run_id` overri
 - `architecture` — `family` → `type` → `params` (e.g. CLAM attention vs. mean pooling).
 - `label_balancing` — applied per fold, from the training split only.
 - `use_augmented_embeddings` — whether to sample the augmented sets built in preprocessing.
+- `target_normalization` — normalize the regression target (per-fold, train-split stats), de-normalized at evaluation. Default on; set `false` to train/predict in raw label units for comparison.
 - `runs` — explicit variations; each needs a `run_id` and lists only its overrides.
 
 !!! note "Cohort consistency"

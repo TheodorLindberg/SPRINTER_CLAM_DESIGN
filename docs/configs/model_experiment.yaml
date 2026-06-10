@@ -17,6 +17,7 @@ defaults:                         # inherited by every run unless overridden
     epochs: 100
   label_balancing: { enabled: true, strategy: bins, n_bins: 4 }
   use_augmented_embeddings: true
+  target_normalization: true        # false → train & predict in raw label units (for comparison)
 
 runs:                             # each: a run_id + only the keys it overrides
   - { run_id: he_lr1e4,   bundle: prostate_combined_v1__sHE__raw__conch }
