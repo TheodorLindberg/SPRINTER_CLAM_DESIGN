@@ -30,6 +30,7 @@ nav:
   - Design:
       - Overview: design/01-overview.md
       - Data Model: design/02-data-model.md
+      - Glossary: design/glossary.md
       - 1 · Data Ingestion: design/03-data-ingestion.md
       - 2 · WSI Transformation: design/04-wsi-transformation.md
       - 3 · Dataset Preprocessing: design/05-dataset-preprocessing.md

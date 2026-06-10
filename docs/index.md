@@ -10,6 +10,7 @@ Status: **working draft.**
 |---|---|
 | [Overview](design/01-overview.md) | Purpose, scope, the five stages, training-vs-heatmap principle |
 | [Data Model](design/02-data-model.md) | Entities, identifiers, bag naming, labels, source variants |
+| [Glossary](design/glossary.md) | All terms + abbreviations in one place |
 | [Stage 1 · Data Ingestion](design/03-data-ingestion.md) | Normalizing raw datasets |
 | [Stage 2 · WSI Transformation](design/04-wsi-transformation.md) | Registration variants and outlines |
 | [Stage 3 · Dataset Preprocessing](design/05-dataset-preprocessing.md) | Labels, patches, embeddings, bundles |
