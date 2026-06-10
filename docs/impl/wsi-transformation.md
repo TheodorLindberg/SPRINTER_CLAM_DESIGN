@@ -15,24 +15,39 @@ Registration and outline extraction happen **together**: VALIS already segments 
 !!! warning "Persist the transform for heatmaps"
     Training is on `raw` but heatmaps render on a registered underlay, so the `raw → variant` mapping must be **saved**, not just applied once. Persist the VALIS registration (affine + non-rigid field) so attention coordinates can be warped later with `warp_tools.warp_xy`. (Not needed when models train on already-registered images.)
 
-## Tissue outlines (VALIS)
+## Tissue outlines
 
-Use **VALIS's own tissue segmentation** (`valis.preprocessing`) — the same masks it registers on — rather than a bespoke threshold, so the outline matches the registered tissue.
+Two interchangeable tissue sources, behind one interface:
 
-1. Take each slide's VALIS tissue mask. Warp it into the target frame with the registrar (`non_rigid=False` → `rigid`; `non_rigid=True` → `elastic`; inverse → `raw`).
-2. `cv2.findContours` → simplify → scale to level-0 → polygon array (multiple components → list of polygons). One outline per `(stain, variant)`.
-3. **Cross-stain intersection** — VALIS's **overlap mask** (the common tissue region across the elastically-aligned stains) → contour → polygon. This replaces a manual shapely intersection.
+- **`valis`** (default) — VALIS's own tissue segmentation (`valis.preprocessing`), the same masks it registers on, so the outline matches the registration.
+- **`hsv_otsu`** — HSV-saturation + Otsu + morphology (`closing` → `remove_small_objects` → `dilation` → `fill_holes`); a self-contained fallback that doesn't depend on VALIS internals.
 
-!!! note "Custom mask fallback"
-    If a slide defeats VALIS segmentation, fall back to a simple HSV-saturation + Otsu + morphology mask. VALIS tissue is the default.
+Both share the mask → outline tail:
+
+1. Get the tissue mask (either method). Warp it into the target frame with the registrar (`non_rigid=False` → `rigid`; `non_rigid=True` → `elastic`; inverse → `raw`).
+2. `cv2.findContours` → simplify → scale to level-0 → polygon array (multiple components → list). One outline per `(stain, variant)`.
+3. **Cross-stain intersection** — VALIS's **overlap mask** (or a shapely intersection of the `hsv_otsu` outlines) → contour → polygon.
+
+### Comparing methods (development)
+
+Write each method to a **method-tagged path** so they coexist; downstream reads only `tissue_method`:
+
+```python
+methods = {cfg.tissue_method} | ({other(cfg.tissue_method)} if cfg.emit_comparison else set())
+for m in methods:
+    outline = mask_to_outline(tissue_mask(m, slide), variant)
+    save_geojson(outline, f"…/outlines/{scan}__{variant}__{m}.geojson")
+```
 
 ## QC overlay (low-res PNG)
 
-Per scan, render a thumbnail with its outline drawn on the tissue so results are eyeballable:
+Per scan, draw the outline(s) on a thumbnail. When comparison is on, overlay **both methods in different colours** so they can be judged side by side:
 
 ```python
-thumb = registrar.get_thumbnail(slide, variant)          # low-res RGB
-cv2.polylines(thumb, [outline_lowres.astype(int)], True, (255,0,0), 2)
+thumb = registrar.get_thumbnail(slide, variant)              # low-res RGB
+colors = {"valis": (255,0,0), "hsv_otsu": (0,180,0)}
+for m, outline in outlines.items():
+    cv2.polylines(thumb, [to_lowres(outline).astype(int)], True, colors[m], 2)
 cv2.imwrite(f"{scan}__{variant}_outline.png", thumb)
 ```
 

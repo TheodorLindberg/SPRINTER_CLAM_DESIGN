@@ -6,6 +6,8 @@ Registration and tissue-outline detection: which [source variants](../design/02-
 
 - `variants` — which of `raw` / `rigid` / `elastic` to produce. Training uses `raw`; registered variants serve [heatmaps](../design/08-heatmaps.md).
 - `registration.reference_stain` — the stain IHC stains are aligned to (H&E).
+- `outlines.tissue_method` — tissue source used downstream: `valis` (default) or `hsv_otsu`.
+- `outlines.emit_comparison` — during development, also produce the *other* method's outline (tagged in the path) and overlay both in the QC PNG, so the two can be compared. Only the `tissue_method` outline feeds later stages.
 - `outlines.cross_stain_intersection` — the region with tissue in every stain, from the elastic overlap; saved per scan.
 - `outlines.quartile_subdivision` — geometric split of the outline along the biopsy's long axis (see [Outlines](../formats/outlines.md)).
 - `outlines.geojson_export` — also emit GeoJSON for TissUUmaps.

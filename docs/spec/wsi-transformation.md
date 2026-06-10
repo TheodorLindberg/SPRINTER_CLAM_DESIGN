@@ -10,7 +10,10 @@ Contracts for [Stage 2](../design/04-wsi-transformation.md). Overview · **Speci
 
 ## Artifacts (per scan, per variant)
 
-Outlines and the QC overlay are produced **within the registration step** (one rule), using **VALIS's own tissue segmentation** — the same masks it registers on — so the tissue definition is consistent with the registration.
+Outlines and the QC overlay are produced **within the registration step** (one rule). The tissue source is configurable — `tissue_method: valis` (default; the same masks VALIS registers on) or `hsv_otsu`.
+
+!!! note "Comparing methods during development"
+    Outlines are written to a **method-tagged path** so both can coexist: `…/outlines/{scan}__{variant}__{tissue_method}.geojson`. With `emit_comparison: true`, the step also emits the *other* method's outline and overlays **both** in the QC PNG. **Only the configured `tissue_method` is authoritative** — downstream stages read that one; the comparison output is for QC only.
 
 | Artifact | Form | Notes |
 |---|---|---|

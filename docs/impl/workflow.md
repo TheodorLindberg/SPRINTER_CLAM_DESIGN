@@ -29,7 +29,7 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
-| `register` | patient | normalized scans → registered OME-TIFFs + `transform.json` + **outlines** (per stain × variant, from VALIS tissue) + **cross-stain intersection** + **QC PNG** (outline-on-tissue, per scan + HE overlay) |
+| `register` | patient | normalized scans → registered OME-TIFFs + `transform.json` + **outlines** `…__{variant}__{tissue_method}.geojson` (VALIS or hsv_otsu) + **cross-stain intersection** + **QC PNG** (outline-on-tissue, both methods when comparing) |
 | `biopsy_axis` | scan | outline → `…/axis/{scan}.json` (PCA axis + quartile cuts) |
 
 `register` does registration **and** outlines in one rule — VALIS already segments tissue and holds the transforms, so a separate outline rule would re-derive both. `biopsy_axis` stays separate (pure geometry on the outline); it can be inlined into `register` if preferred.

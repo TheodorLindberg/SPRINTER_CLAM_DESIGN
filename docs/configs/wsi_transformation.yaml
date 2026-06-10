@@ -10,6 +10,8 @@ registration:
   reference_stain: HE             # IHC stains are aligned to this
 
 outlines:
+  tissue_method: valis            # valis | hsv_otsu — tissue source used downstream
+  emit_comparison: true           # also emit the OTHER method (dev QC; not used downstream)
   per_stain: true
   cross_stain_intersection: true  # from the elastic overlap; saved per scan
   quartile_subdivision: true      # geometric split along the biopsy long axis
