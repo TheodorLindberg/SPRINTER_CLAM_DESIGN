@@ -37,11 +37,9 @@ The clean rule: bundles carry **raw** labels and embeddings only. Anything fitte
 
 ## Metadata file scope {#metadata-file-scope}
 
-**Decided: metadata rides on the scan manifest as columns at any entity level, and is forwarded through preprocessing into the bundle and BEAM.**
+**Decided: nested `metadata:` per level in the YAML/JSON scan manifest, forwarded into the bundle and BEAM grouped by level.**
 
-Patient, biopsy, and scan form a strict hierarchy, so metadata at a coarser level is always reachable at a finer level (patient-level columns repeat across that patient's rows). No separate metadata store is needed — extra manifest columns plus the hierarchy suffice. Preprocessing carries this metadata forward so it is present in the bundle manifest and in each BEAM file, without re-joining to the source. See [Data Ingestion · Scan manifest](03-data-ingestion.md#scan-manifest-the-contract).
-
-**Still open:** whether a free-form JSON blob column is needed for deeply nested or irregular metadata. Flat columns now; JSON blob deferred until a real case demands it.
+The scan manifest is hierarchical (`dataset → patient → biopsy → scan`), so metadata sits as a `metadata:` block at whichever level it describes — written once, no repetition. Preprocessing forwards it downstream **keeping the level tag**, and the [BEAM](../formats/beam.md) `/metadata` stores it grouped `dataset/ patient/ biopsy/ scan/`, so a reader always knows what a value describes. No separate metadata store, and the nested form handles irregular/structured metadata directly. See [Data Ingestion · Scan manifest](03-data-ingestion.md#scan-manifest-the-contract).
 
 ---
 

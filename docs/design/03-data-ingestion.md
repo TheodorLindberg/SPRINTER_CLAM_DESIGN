@@ -26,22 +26,26 @@ A flat layout works equally well; folders vs. flat is the ingester's choice.
 
 ## Scan manifest (the contract)
 
-One row per scan — the entity ids, the WSI path, and any metadata columns:
+A hierarchical **YAML/JSON** document — `dataset → patients → biopsies → scans` — with an optional `metadata:` block at any level:
 
-| Column | Role |
-|---|---|
-| `dataset_id` | dataset source (+ optional version) |
-| `patient_id` | unique within the dataset |
-| `biopsy_id` | unique within the patient |
-| `stain` | `HE` / `Ki67` / `PSA` |
-| `wsi_path` | path to the scan file |
-| *(any others)* | metadata, at any level — see below |
+```yaml
+dataset_id: sahlgrenska_2018
+patients:
+  p0001:
+    metadata: { age: 67 }                     # patient-level
+    biopsies:
+      b01:
+        metadata: { gleason: 7 }              # biopsy-level
+        scans:
+          HE:   { path: .../p0001_b01_HE.ndpi }
+          Ki67: { path: .../p0001_b01_Ki67.ndpi, metadata: { antibody: MIB-1 } }
+```
 
-A scan is identified by **`(biopsy_id, stain)`** — a biopsy has at most one scan per stain, so there is **no separate `scan_id`**. Where a single-token handle is convenient (paths, filenames) it is just `{biopsy_id}__{stain}`.
+A scan is identified by **`(biopsy_id, stain)`** — at most one scan per stain per biopsy, so there is **no separate `scan_id`** (a `{biopsy_id}__{stain}` handle is derived where needed). Full schema, invariants, and acceptance criteria: **[input-contract spec](../spec/data-ingestion.md)**.
 
 ### Metadata, at any level
 
-Extra columns describe the patient, biopsy, or scan (age, site, scanner, stain details, …). A column's *level* is simply which entity it describes — patient-level values repeat across that patient's rows; no separate metadata file is needed. This metadata is **carried through preprocessing and forwarded into the bundle and the [BEAM](../formats/beam.md) file**, so it reaches reports and heatmaps without re-joining the source. See the [metadata decision](09-open-questions.md#metadata-file-scope).
+`metadata:` can sit at the **dataset, patient, biopsy, or scan** level — nested, so a value is written once (no repetition). Each entry **keeps its level**: preprocessing forwards it into the bundle and the [BEAM](../formats/beam.md) `/metadata`, grouped by level, so reports and heatmaps know whether a value describes the patient, biopsy, or scan — without re-joining the source. See the [metadata decision](09-open-questions.md#metadata-file-scope).
 
 ---
 
@@ -49,7 +53,7 @@ Extra columns describe the patient, biopsy, or scan (age, site, scanner, stain d
 
 Alongside the scans, a CSV holds per-biopsy labels keyed by patient, biopsy, and stain. The set is dataset-specific; for this project:
 
-- Proliferation / expression scores **per quartile** (4 per biopsy). Region information is unavailable, so these are averaged in a later step.
+- Proliferation / differentiation scores **per quartile** (4 per biopsy). Region information is unavailable, so these are averaged in a later step.
 - Gleason grade.
 - Biopsy length and tumor length.
 

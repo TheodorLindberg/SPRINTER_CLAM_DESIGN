@@ -38,8 +38,11 @@ Produced by [Stage 5 · Evaluation](../design/07-evaluation.md); consumed by rep
 ├─ prediction ············· prediction per model
 ├─ labels/ ················ true labels where available · name → value (+ type)
 ├─ embeddings ············· (N, D) float · optional, else referenced from bundle
-└─ metadata/ ·············· model info, registration info, forwarded
-                            scan-manifest metadata (patient/biopsy/scan), free-form
+└─ metadata/ ·············· model + registration info, free-form, plus
+   ├─ dataset/ ··········· forwarded scan-manifest metadata, grouped by level
+   ├─ patient/             (each value keeps the level it was defined at)
+   ├─ biopsy/
+   └─ scan/
 ```
 
 ---

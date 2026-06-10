@@ -138,6 +138,8 @@ Detailed layouts live in the [format specs](../formats/beam.md); this is the ove
 
 | Artifact | Format | Spec |
 |---|---|---|
+| Scan manifest (input) | **YAML / JSON** (hierarchical, per-level metadata) | [Data Ingestion](../spec/data-ingestion.md) |
+| Generated row manifests (bags, folds) | CSV / Parquet | — |
 | Embeddings | **HDF5** (binary, per scan) | [Embeddings & patches](../formats/embeddings-and-patches.md) |
 | Patch coordinates | **HDF5** (binary arrays) | [Embeddings & patches](../formats/embeddings-and-patches.md) |
 | Tissue outlines | **Polygon arrays** (+ GeoJSON export) | [Outlines](../formats/outlines.md) |
@@ -162,4 +164,4 @@ Raw labels come from the ingestion CSV; **derived labels** (averages, max, binar
     A bundle prepared for evaluation-only on an external dataset may carry no labels at all. Every downstream stage must tolerate their absence.
 
 !!! note "Quartiles are metadata, not geometry"
-    Some scores (e.g. proliferation/expression indices) arrive as four per-biopsy **score quartiles**. Because region information is unavailable, they are carried as metadata only — **not** a spatial index — and averaged in preprocessing. These are distinct from the **geometric quartiles** (the spatial split along the biopsy axis used for heatmap regions); the two are never mapped to each other.
+    Some scores (e.g. proliferation/differentiation indices) arrive as four per-biopsy **score quartiles**. Because region information is unavailable, they are carried as metadata only — **not** a spatial index — and averaged in preprocessing. These are distinct from the **geometric quartiles** (the spatial split along the biopsy axis used for heatmap regions); the two are never mapped to each other.
