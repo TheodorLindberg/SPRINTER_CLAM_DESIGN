@@ -7,7 +7,7 @@ variants: [raw, rigid, elastic]   # source variants to produce
 
 registration:
   method: valis                   # registration backend
-  reference_stain: HE             # IHC stains are aligned to this
+  # reference_stain comes from base.yaml (default HE); override here only if needed
 
 outlines:
   tissue_method: valis            # valis | hsv_otsu — tissue source used downstream

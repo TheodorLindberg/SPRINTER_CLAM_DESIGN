@@ -47,7 +47,7 @@ A tabular file (CSV/Parquet) keyed by `(dataset_id, patient_id, biopsy_id)`; col
 - Every scan `path` exists and is OpenSlide-readable.
 - A scan `(patient, biopsy, stain)` is unique by construction (the hierarchy can't express duplicates).
 - Each `stain` is in the dataset's normalized vocabulary.
-- If registration is used, every biopsy has an **`HE`** scan (HE is the registration reference frame).
+- If registration is used, every biopsy has a scan for the **`reference_stain`** (default `HE`, from `base.yaml`) — it defines the registration reference frame.
 - Label rows join to scans on the **full** `(dataset_id, patient_id, biopsy_id)` key; rows with no matching biopsy are an error.
 
 ## Acceptance criteria

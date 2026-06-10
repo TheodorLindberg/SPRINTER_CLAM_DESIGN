@@ -6,9 +6,9 @@ Reference libraries: **VALIS** (registration **and** tissue masking), **OpenCV**
 
 ## Registration + outlines (one step)
 
-Registration and outline extraction happen **together**: VALIS already segments tissue to drive registration and holds the transforms, so the same rule emits the registered images, the transforms, the outlines, the cross-stain intersection, and a QC overlay. HE is the reference; all stains register to it.
+Registration and outline extraction happen **together**: VALIS already segments tissue to drive registration and holds the transforms, so the same rule emits the registered images, the transforms, the outlines, the cross-stain intersection, and a QC overlay. The **`reference_stain`** (default `HE`, from [`base.yaml`](../configs/base.md)) is the reference; all stains register to it.
 
-1. **Rigid** — `Valis(..., reference_img_f=HE, feature_detector_cls=DeDoDeFD, micro_rigid_registrar_cls=MicroRigidRegistrar)` (or DISK + LightGlue for feature-rich samples), downscaled to `max_processed_image_dim_px`. Per slide, the affine `raw → rigid` is recovered by warping reference points (`slide.warp_xy(pts, non_rigid=False)` → `SimilarityTransform.estimate`) and saved to `transform.json`.
+1. **Rigid** — `Valis(..., reference_img_f=<reference_stain scan>, feature_detector_cls=DeDoDeFD, micro_rigid_registrar_cls=MicroRigidRegistrar)` (or DISK + LightGlue for feature-rich samples), downscaled to `max_processed_image_dim_px`. Per slide, the affine `raw → rigid` is recovered by warping reference points (`slide.warp_xy(pts, non_rigid=False)` → `SimilarityTransform.estimate`) and saved to `transform.json`.
 2. **Elastic (non-rigid)** — RANSAC-filtered matches → displacement field on top of the rigid prefix.
 3. **Warp & save** — `warp_and_save_slides(dir, compression="lzw")` → pyramidal OME-TIFF per variant. Keep the VALIS registrar so masks/points can be warped later.
 

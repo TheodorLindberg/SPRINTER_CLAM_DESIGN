@@ -4,7 +4,7 @@ Contracts for [Stage 2](../design/04-wsi-transformation.md). Overview · **Speci
 
 ## Coordinate frames
 
-- **HE is the reference.** For a patient, all *registered* variants (`rigid`, `elastic`) share the HE level-0 pixel frame.
+- **The reference stain defines the frame.** `reference_stain` (default `HE`, set in [`base.yaml`](../configs/base.md)) is what all others register to; for a patient, all *registered* variants (`rigid`, `elastic`) share its level-0 pixel frame.
 - `raw` is each scan's own native frame.
 - A registered variant ships a **transformation** mapping `raw → variant` (so raw-frame points — e.g. attention coordinates — can be placed on a registered underlay).
 
@@ -18,7 +18,7 @@ Outlines and the QC overlay are produced **within the registration step** (one r
 | Artifact | Form | Notes |
 |---|---|---|
 | Registered image | OME-TIFF | `rigid`, `elastic`; pyramidal, tiled, LZW |
-| Rigid transform | `transform.json` | affine 3×3 (raw → rigid) + the reference (HE) frame size |
+| Rigid transform | `transform.json` | affine 3×3 (raw → rigid) + the reference-stain frame size |
 | Elastic transform | displacement field ref + affine | non-rigid warp; stored as a VALIS/registration handle + the rigid prefix |
 | Tissue outline | polygon array (+ GeoJSON) | per stain per variant; from VALIS tissue; see [Outlines](../formats/outlines.md) |
 | Cross-stain intersection | polygon array | per scan; from VALIS's `elastic` overlap mask |

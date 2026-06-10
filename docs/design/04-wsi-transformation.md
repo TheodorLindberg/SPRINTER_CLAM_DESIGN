@@ -20,7 +20,7 @@ Each scan is produced in up to three variants:
 | **Rigid** | Registered TIFF + transformation matrix; rotation/translation only | Coarse | Exact (rotational interpolation noise is negligible) |
 | **Elastic** | Biopsy stretched so IHC stains align tightly to H&E | Tight | Locally distorted |
 
-A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned across stains.
+A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned across stains. Stains align to the **reference stain** — H&E by default, configurable via `reference_stain` in [`base.yaml`](../configs/base.md).
 
 ---
 

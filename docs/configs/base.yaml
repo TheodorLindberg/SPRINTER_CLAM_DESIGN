@@ -13,3 +13,5 @@ registries:
 
 defaults:
   source_variant: raw           # training/metrics default
+  reference_stain: HE           # registration reference frame; all stains register to it
+
