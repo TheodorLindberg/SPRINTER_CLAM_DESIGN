@@ -28,54 +28,18 @@ One **BEAM file per biopsy per model**, plus aggregate reports.
 
 ## The BEAM format
 
-**BEAM** — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-model result format. It is stored as **HDF5** and named `{biopsy_id}__{model_id}.beam.h5`.
+**BEAM** — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-model result format, stored as **HDF5** (`{biopsy_id}__{model_id}.beam.h5`). HDF5 is chosen because it is **appendable**: enrichment steps can add fields without breaking existing readers.
 
-It collects everything downstream consumers (reports, heatmaps) need in one self-describing file. HDF5 is chosen because it is **appendable**: future enrichment steps can add datasets or groups (extra heatmaps, additional embeddings, new attention variants) without breaking existing readers.
+Roughly, one BEAM file holds:
 
-### Layout
+- **Attention** per patch — raw, sigmoid, rank.
+- **Prediction(s)** for the biopsy and **true labels** where available.
+- **Patch coordinates** (WSI frame) and patch size.
+- **Tissue outline** used, as a polygon array, optionally divided into quartiles.
+- **Provenance** — patient, stain, source variant, model, embedding model, patch config.
+- **Free-form metadata**; quartile carried as metadata.
 
-```text
-{biopsy_id}__{model_id}.beam.h5
-  /                         # root attributes (provenance)
-      format_version
-      biopsy_id, patient_id, dataset_id
-      model_id, embedding_model_id
-      evaluation_tag
-      stain
-      source_variant        # raw / rigid / elastic
-      patch_config_id, patch_size, patch_resolution
-      quartile              # carried metadata, NOT a spatial index
-  /prediction               # prediction per model
-  /labels                   # true labels where available (name → value, with type attrs)
-  /patches
-      coords                # (N, 2|4) int — x, y (, w, h) in the WSI frame, binary
-      size                  # patch size / resolution
-  /attention
-      raw                   # (N,)
-      sigmoid               # (N,)
-      rank                  # (N,)
-  /embeddings               # optional (N, D) — included or referenced from the bundle
-  /outline                  # tissue outline used (GeoJSON string, or reference)
-  /metadata                 # model info, embedding model, registration / source-variant info, free-form
-```
-
-### What each field maps to
-
-| Requested field | Location in BEAM |
-|---|---|
-| Attention (raw, sigmoid, rank) | `/attention/{raw,sigmoid,rank}` |
-| Prediction per model | `/prediction` |
-| True labels (where available) | `/labels` |
-| Stain | root attr `stain` |
-| Metadata | `/metadata` |
-| Patch size | root attr + `/patches/size` |
-| Model info | `/metadata`, root attr `model_id` |
-| Embedding model | root attr `embedding_model_id` |
-| Patient | root attr `patient_id` |
-| Tissue outline used | `/outline` |
-| Patches | `/patches/coords` |
-| Quartile | root attr `quartile` |
-| Registration / source variant | root attr `source_variant`, `/metadata` |
+→ Full layout and field mapping: **[BEAM format spec](../formats/beam.md)**.
 
 ---
 

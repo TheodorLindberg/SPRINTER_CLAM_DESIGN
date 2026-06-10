@@ -61,6 +61,26 @@ Supports **grid search** and a **Bayesian optimizer** (e.g. Optuna / TPE). Produ
 
 ---
 
+## Label balancing
+
+Training supports correcting for imbalanced targets, configured per run:
+
+- **Classification** — class weights, or weighted/over/under-sampling of bags.
+- **Regression** — bin the target and balance across bins (so rare high/low scores are not drowned out).
+
+Balancing is applied **per fold, from the training split only** — consistent with the [no-fitted-statistics rule](05-dataset-preprocessing.md) — so it never leaks distribution information from validation or held-out data.
+
+## Augmentation
+
+Training data augmentation is supported. Because embeddings are **precomputed and cached**, augmentation defaults to the **bag / embedding level** rather than image space:
+
+- Instance (patch) dropout within a bag.
+- Bag subsampling / resampling.
+- Feature-space noise or mixup.
+
+!!! note "Image-space augmentation conflicts with the cache"
+    True image augmentations (rotation, color jitter, …) would require re-embedding the augmented patches, which the content-addressed cache does not cover. If image-space augmentation is needed, it must happen at embedding time with the augmented variants cached under distinct keys. Default is bag/embedding-level augmentation.
+
 ## Metrics by label type
 
 The metric set is selected **per label according to its type**, so a single sweep can report regression and classification targets side by side.

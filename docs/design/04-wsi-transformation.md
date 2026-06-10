@@ -22,7 +22,7 @@ A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned ac
 
 ## Tissue outlines
 
-Outlines are stored as JSON and GeoJSON (likely via VALIS):
+Outlines are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md). Likely produced via VALIS.
 
 - **Raw outline** — per stain.
 - **Rigid-registered outline** — per stain.

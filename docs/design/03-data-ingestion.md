@@ -16,7 +16,7 @@ patient_<x>/
     scan_<stain>.<ext>      # <ext> = any OpenSlide-supported format
 ```
 
-A flat naming convention is also viable. **The pipeline does not depend on the on-disk layout** — it reads a generated manifest of IDs → paths (see [decision in Open Questions](08-open-questions.md#normalized-format-folders-vs-flat)). Folders vs. flat is therefore a presentation choice for the ingester, not a pipeline constraint.
+A flat naming convention is also viable. **The pipeline does not depend on the on-disk layout** — it reads a generated manifest of IDs → paths (see [decision in Open Questions](09-open-questions.md#normalized-format-folders-vs-flat)). Folders vs. flat is therefore a presentation choice for the ingester, not a pipeline constraint.
 
 ---
 
@@ -40,7 +40,7 @@ Ingestion establishes the identifiers a bag is later built from: dataset origin,
 
 ## Metadata note
 
-A metadata file that survives through the pipeline would let later stages reach extra information (e.g. stain details). Scope is undecided — metadata can be per-patient, per-biopsy, or per-scan. The recommended minimal approach (extra columns on the existing entity manifests, resolved by ID inheritance) is described in [Open Questions](08-open-questions.md#metadata-file-scope).
+A metadata file that survives through the pipeline would let later stages reach extra information (e.g. stain details). Scope is undecided — metadata can be per-patient, per-biopsy, or per-scan. The recommended minimal approach (extra columns on the existing entity manifests, resolved by ID inheritance) is described in [Open Questions](09-open-questions.md#metadata-file-scope).
 
 ---
 

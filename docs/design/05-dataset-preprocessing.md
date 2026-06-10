@@ -26,7 +26,7 @@ Labels are optional — a preprocessing run for evaluation-only on an external d
 
 Generates patches from the tissue outlines according to the configured patching strategy (size, resolution, overlap/stride).
 
-Patch **coordinates** are stored as binary HDF5 arrays (not pixel crops — pixels are read from the WSI on demand). A GeoJSON export of the patch geometry is available for TissUUmaps viewing. See [Storage formats](02-data-model.md#storage-formats).
+Patch **coordinates** are stored as binary HDF5 arrays (not pixel crops — pixels are read from the WSI on demand). A GeoJSON export of the patch geometry is available for TissUUmaps viewing. → [Embeddings & patches spec](../formats/embeddings-and-patches.md).
 
 ---
 
@@ -43,7 +43,7 @@ Each embedding is keyed by its **WSI patch coordinates + patch size + resolution
 - Different overlap settings simply produce different coordinate sets.
 - Shared positions reuse cached embeddings automatically.
 
-This avoids relying on one grid being a structural subset of another, which breaks under outline cropping, edge handling, or a shifted grid origin. This is the recommended approach; alternatives are weighed in [Open Questions](08-open-questions.md#embedding-reuse-strategy).
+This avoids relying on one grid being a structural subset of another, which breaks under outline cropping, edge handling, or a shifted grid origin. This is the recommended approach; alternatives are weighed in [Open Questions](09-open-questions.md#embedding-reuse-strategy).
 
 ---
 
@@ -61,7 +61,7 @@ A bundle is not training-specific: the same preprocessing output can feed an eva
     This is deliberate, to support the **seed sweep** (see [Model Training](06-model-training.md)), which trains and evaluates across a varying number of model seeds and fold seeds for a more accurate estimate. Folds belong to the training stage.
 
 !!! warning "No fitted statistics in bundles"
-    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training split only**, never at bundle-preparation time across all patients. This is what guarantees the patient-exclusion bundles below share no derived state. See [Open Questions](08-open-questions.md#patient-exclusion-leakage).
+    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training split only**, never at bundle-preparation time across all patients. This is what guarantees the patient-exclusion bundles below share no derived state. See [Open Questions](09-open-questions.md#patient-exclusion-leakage).
 
 ### Patient exclusion
 

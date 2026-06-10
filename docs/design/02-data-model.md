@@ -73,15 +73,17 @@ Source variant is kept as its own field so that raw / rigid / elastic bags for t
 
 Binary is the source of truth; GeoJSON is the view. Anything meant for interactive inspection in TissUUmaps is also exported as GeoJSON, but the pipeline never depends on the GeoJSON for computation.
 
-| Artifact | Format | Notes |
+Detailed layouts live in the [format specs](../formats/beam.md); this is the overview.
+
+| Artifact | Format | Spec |
 |---|---|---|
-| Embeddings | **HDF5** | Binary, per scan; lives in the content-addressed cache and the bundle |
-| Patch coordinates | **HDF5** | Binary `(N, 2\|4)` arrays in the bundle and in BEAM |
-| Patch / tissue geometry for viewing | **GeoJSON** | Export layer for TissUUmaps |
-| Tissue outlines | **GeoJSON** (+ JSON) | Produced in WSI Transformation |
-| Transformation matrices | JSON | Rigid / elastic registration output |
-| Evaluation results | **BEAM** (HDF5) | Per biopsy, per model — see [Evaluation](07-evaluation.md#the-beam-format) |
-| Heatmaps | PNG + GeoJSON | Static figure + interactive TissUUmaps layer |
+| Embeddings | **HDF5** (binary, per scan) | [Embeddings & patches](../formats/embeddings-and-patches.md) |
+| Patch coordinates | **HDF5** (binary arrays) | [Embeddings & patches](../formats/embeddings-and-patches.md) |
+| Tissue outlines | **Polygon arrays** (+ GeoJSON export) | [Outlines](../formats/outlines.md) |
+| Patch / tissue geometry for viewing | **GeoJSON** | [Outlines](../formats/outlines.md) |
+| Transformation matrices | JSON | — |
+| Evaluation results | **BEAM** (HDF5) | [BEAM](../formats/beam.md) |
+| Heatmaps | PNG + GeoJSON | [Heatmaps](08-heatmaps.md) |
 
 ---
 

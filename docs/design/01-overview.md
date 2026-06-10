@@ -85,4 +85,7 @@ A raw-trained model is applied to registered images purely to produce aligned vi
 - [Stage 4 · Model Training](06-model-training.md)
 - [Stage 5 · Evaluation](07-evaluation.md)
 - [Stage 6 · Heatmap Generation](08-heatmaps.md)
+- [Configuration](10-configuration.md) — draft Snakemake configs
 - [Open Questions & Decisions](09-open-questions.md)
+
+Detailed file-format specs (BEAM, embeddings, outlines) live under [formats/](../formats/beam.md).
