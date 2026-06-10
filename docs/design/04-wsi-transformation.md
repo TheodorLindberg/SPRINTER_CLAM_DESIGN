@@ -4,6 +4,8 @@ Raw scans carry arbitrary per-stain rotation and translation, so tissue does not
 
 > **In** normalized scans (via the manifest) · **Out** raw / rigid / elastic variants + transformation matrices, and tissue outlines
 
+*Go deeper: [Specification](../spec/wsi-transformation.md) · [Implementation](../impl/wsi-transformation.md).*
+
 It is kept as its own stage because registration is expensive and its outputs are reused across every downstream patch and embedding configuration.
 
 ---

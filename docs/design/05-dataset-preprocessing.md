@@ -4,6 +4,8 @@ Turns normalized scans and their transformation outputs into patch embeddings, t
 
 > **In** scans, tissue outlines, source labels · **Out** cached patch embeddings + bundles (prepared cohorts)
 
+*Go deeper: [Specification](../spec/preprocessing.md) · [Implementation](../impl/preprocessing.md).*
+
 ```mermaid
 flowchart LR
     L[Label processing] --> BN

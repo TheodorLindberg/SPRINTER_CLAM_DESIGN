@@ -52,6 +52,16 @@ nav:
           - 5 · Evaluation: configs/evaluation.md
           - 6 · Heatmap Generation: configs/heatmaps.md
           - Reports: configs/reports.md
+  - Specification:
+      - Overview: spec/index.md
+      - 2 · WSI Transformation: spec/wsi-transformation.md
+      - 3 · Dataset Preprocessing: spec/preprocessing.md
+      - 4 · Model Training: spec/training.md
+  - Implementation:
+      - Overview: impl/index.md
+      - 2 · WSI Transformation: impl/wsi-transformation.md
+      - 3 · Dataset Preprocessing: impl/preprocessing.md
+      - 4 · Model Training: impl/training.md
   - Formats:
       - BEAM: formats/beam.md
       - Embeddings & Patches: formats/embeddings-and-patches.md

@@ -4,7 +4,16 @@ Histology training & evaluation pipeline for MIL models on whole-slide images.
 
 Design docs in `docs/design/` are the **authoritative source of truth**.
 Always read the relevant design doc before suggesting implementation changes.
-Keep docs at overview altitude for now — exact schemas (bundle, manifest) are deliberately deferred.
+
+## Three documentation layers (progressive depth)
+
+The goal is a spec deep enough to **rebuild the pipeline from scratch** against it.
+- **Overview** (`docs/design/`) — concept, In→Out, decisions, diagrams. Keep shallow; don't bloat. Each stage page has a one-line *Go deeper* pointer.
+- **Specification** (`docs/spec/`) — exact, implementation-independent contracts: schemas (cols/dtypes/layouts), config field semantics, **invariants**, **acceptance criteria**. The testable WHAT.
+- **Implementation** (`docs/impl/`) — algorithms (incl. math), signatures, library choices, pseudocode. The HOW; changeable as long as the spec holds.
+Built out so far for: WSI transformation (incl. the **PCA biopsy-axis** line), preprocessing, training. Extend stage by stage.
+
+Old pipeline code for reference (gitignored, never referenced by the published docs): `clam_old_pipeline/` — registration code in `clam_old_pipeline/registration_and_preprocessing/` (VALIS). Review/migration notes in `OLD_PIPELINE_REVIEW.md` (repo root, outside docs).
 
 ## Git workflow
 

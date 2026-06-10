@@ -4,6 +4,8 @@ Trains MIL models from a bundle. A **model experiment** defines the runs, which 
 
 > **In** a bundle (`development` subset) + a `seed_set` · **Out** per-fold checkpoints, metrics, run records
 
+*Go deeper: [Specification](../spec/training.md) · [Implementation](../impl/training.md).*
+
 ```mermaid
 flowchart TD
     EXP[Model experiment\nshared defaults + runs] --> FG[Fold generation\nseed_set → seeds.yaml]
