@@ -7,3 +7,5 @@ __pycache__/
 .venv/
 venv/
 .claude
+# Cloned reference (not part of these docs)
+clam_old_pipeline/

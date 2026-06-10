@@ -1,6 +1,6 @@
-# Appendix — Decisions & Background
+# Appendix — Design Decisions
 
-A record of the design decisions behind this spec and how they differ from the original (old) pipeline. This is the "why", kept out of the stage docs so those stay clean.
+The reasoning behind the spec — the "why" — kept out of the stage docs so those stay focused on the design itself.
 
 ## How `dataset_id` is meant to work
 
@@ -9,13 +9,11 @@ A record of the design decisions behind this spec and how they differ from the o
 - A patient is globally `(dataset_id, patient_id)`, so the same `dataset_id` is what lets a [cohort](02-data-model.md#cohorts-roles-and-splits) pool patients from several sources unambiguously.
 - Never `latest` — the id must pin a specific source/version so provenance is stable.
 
-> Originally (old pipeline): **to confirm — describe how datasets were identified before** (e.g. a single implicit dataset, a folder name, or an ad-hoc id). Capture it here so the change is traceable.
-
 ---
 
 ## Design decisions
 
-Each entry: **what** we decided and **why**. Where it changed from the old pipeline, the *before → now* is noted.
+Each entry: **what** we decided and **why**.
 
 ### Data & contracts
 
@@ -51,17 +49,3 @@ Each entry: **what** we decided and **why**. Where it changed from the old pipel
 - **`base.yaml` holds roots.** *Why:* change an output path once, not in every stage config.
 - **HPO is segregated** (own index, top-N checkpoints kept); workflow is HPO → promote best → seed sweep. *Why:* sweep models are the keepers; HPO models are exploratory and rarely revisited.
 - **Reports are a regenerable view** over manifests / `runs.parquet` / BEAM — static HTML, Plotly, standalone CSS, faceted by tags, with two-level data export. *Why:* reproducible, archival, and the real backing artifacts stay the source of truth.
-
----
-
-## Original pipeline (baseline)
-
-How the current/old pipeline works, for contrast. **To be completed** — capture the specifics so the migration rationale is preserved.
-
-- **Datasets:** _to confirm_ — single dataset vs multiple; how identified.
-- **Splits / held-out:** _to confirm_ — how folds and any held-out set were defined (per dataset? per run?).
-- **Bundles / model input:** _to confirm_ — was there an independent preprocessing artifact, or did training read embeddings directly?
-- **Config:** _to confirm_ — one config per model/run? how HPO was handled.
-- **Reports:** _to confirm_ — what existed (notebooks, ad-hoc plots, none).
-
-> Fill these in (or tell me and I will). Each line that differs from a decision above is the migration story for that decision.

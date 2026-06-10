@@ -87,6 +87,6 @@ Draft configs in `docs/configs/` (base, cohorts, seeds, wsi_transformation, prep
 
 ## Doc structure
 
-Design: `01-overview` · `02-data-model` · `glossary` (all terms + abbreviations) · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration` · `11-reports` · `12-appendix` (decisions + old-pipeline baseline)
+Design: `01-overview` · `02-data-model` · `glossary` (all terms + abbreviations) · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration` · `11-reports` · `12-appendix` (design decisions / rationale)
 Formats: `docs/formats/{beam,embeddings-and-patches,outlines}.md`
 Configs: `docs/configs/*.yaml` (drafts): base, cohorts, seeds, wsi_transformation, preprocessing, model_experiment, hpo, evaluation, heatmaps, reports
