@@ -20,7 +20,7 @@ A hierarchical document — `dataset → patients → biopsies → scans` — wi
 dataset_id: sahlgrenska_2018
 metadata: { scanner: Hamamatsu, year: 2018 }        # dataset-level (optional)
 patients:
-  p0001:                                            # de-identified index, not a real id
+  p0001:                                            # an index within the dataset
     metadata: { age: 67, site: gothenburg }         # patient-level
     biopsies:
       b01:
@@ -49,7 +49,6 @@ A tabular file (CSV/Parquet) keyed by `(dataset_id, patient_id, biopsy_id)`; col
 - Each `stain` is in the dataset's normalized vocabulary.
 - If registration is used, every biopsy has an **`HE`** scan (HE is the registration reference frame).
 - Label rows join to scans on the **full** `(dataset_id, patient_id, biopsy_id)` key; rows with no matching biopsy are an error.
-- `patient_id` carries no real-world identity.
 
 ## Acceptance criteria
 
