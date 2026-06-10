@@ -12,7 +12,7 @@ The full files are shown on their own pages (under **Configuration** in the side
 | Config | Stage | Controls |
 |---|---|---|
 | [`base.yaml`](../configs/base.md) | all | Shared **roots** + rarely-edited settings; layered under every stage config |
-| [`cohorts.yaml`](../configs/cohorts.md) | — | Named cohorts (multi-dataset) + per-patient **roles** (development / holdout) |
+| [`cohorts.yaml`](../configs/cohorts.md) | 3 | Named cohorts (multi-dataset) + per-patient **roles**; resolved/validated/reported by `resolve_cohort` |
 | [Split registry (`seeds.yaml`)](../configs/seeds.md) | 4 | Named seed/split sets referencing a cohort; shared by all models |
 | [`wsi_transformation.yaml`](../configs/wsi_transformation.md) | 2 | Variants to produce, registration backend, outline + quartile options |
 | [`preprocessing.yaml`](../configs/preprocessing.md) | 3 | Derived labels, patching, embedding, **augmentation**, **bundle = prepared cohort** |

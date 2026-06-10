@@ -8,6 +8,7 @@ Turns normalized scans and their transformation outputs into patch embeddings, t
 
 ```mermaid
 flowchart LR
+    RC[Cohort resolution] --> BN
     L[Label processing] --> BN
     P[Patch generation] --> E[Patch embedding + cache]
     E --> BN[Bundle preparation]
@@ -15,6 +16,10 @@ flowchart LR
 ```
 
 Label processing is independent of registration and runs in parallel; patch generation consumes the outlines from [WSI Transformation](04-wsi-transformation.md).
+
+## Cohort resolution
+
+The first step: a [cohort](../configs/cohorts.md) definition is **resolved into a frozen, hashed membership** (which patients, in which role), **validated** (members exist, holdout is clean, pooled labels are comparable), and turned into a **cohort HTML report** — composition by dataset and role, and label distributions. It runs on its own (the `cohort` target) so a cohort can be checked *before* any heavy compute, and the frozen membership is what bundles and folds derive from.
 
 ---
 

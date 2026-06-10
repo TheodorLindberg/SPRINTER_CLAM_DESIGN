@@ -48,6 +48,7 @@ Each scan exists as `raw` / `rigid` / `elastic`.
 - Splits are over the cohort's development patients, so different stain/embedding bundles share aligned folds (a patient lacking a stain contributes no bag but keeps its fold). Membership is frozen + hashed; change → stale-splits warning.
 - **Bundle = a prepared cohort**: materializes a cohort for one (stain · embedding · variant · patch config), EVERY patient present, each bag tagged with its `role`. Role is a manifest column, NOT a separate bundle. One cohort → many bundles. Stages pick a **`subset` enum** (`development` / `holdout` / `all`) — never a list. Union = `all`. (This is the resolved answer to "train/eval on a list of cohorts" — rejected as unintuitive/leak-prone.)
 - Configs: `cohorts.yaml` (members + holdout designation → frozen hashed membership), `seeds.yaml` references `cohort:`, preprocessing `bundle:` block = prepared cohort, `model_experiment.yaml`/`evaluation.yaml` carry `subset:`. No `patient_exclusion` (lifted to the cohort's holdout role).
+- **Cohort is an actual pipeline step**: `resolve_cohort` rule (first in preprocessing, `cohort` target) freezes the hashed membership, validates (members exist, holdout clean, pooled labels comparable), and emits `results/reports/cohorts/{cohort}.html`. Runnable before heavy compute. Gates `assemble_bundle` + `generate_folds`.
 
 ## Metadata flow (decided)
 
@@ -89,7 +90,7 @@ Draft configs in `docs/configs/` (base, cohorts, seeds, wsi_transformation, prep
 
 1. Data Ingestion (outside Snakemake) — normalize raw → standard format + per-biopsy label CSV
 2. WSI Transformation — registration (raw/rigid/elastic) + tissue outlines + cross-stain intersection
-3. Dataset Preprocessing — label processing, patch generation, patch embedding (+cache), bundle prep (= prepared cohort)
+3. Dataset Preprocessing — **cohort resolution** (resolve_cohort: freeze+validate+report), label processing, patch generation, patch embedding (+cache), bundle prep (= prepared cohort)
 4. Model Training — fold generation (split registry `seeds.yaml`), model experiment (defaults + runs), seed sweep; HPO separate + segregated
 5. Evaluation — inference, per-biopsy aggregation into BEAM files, reports
 6. Heatmap Generation — attention overlays (PNG) + TissUUmaps GeoJSON. NOTE: attention is in the raw frame, so coords must be pushed through the variant's transform matrix to overlay on rigid/elastic.

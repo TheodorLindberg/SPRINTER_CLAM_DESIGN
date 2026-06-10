@@ -86,7 +86,7 @@ So when a table is useful for an article, you grab the real backing data and run
 
 Reports emit at two moments, sharing the same components (breadcrumbs, provenance block, table macro, plot-card macro):
 
-- **Pre-model** — dataset distribution, cohort composition, fold composition (after preprocessing / split generation).
+- **Pre-model** — dataset distribution, **cohort composition (emitted by `resolve_cohort`)**, fold composition (after split generation).
 - **Post-model** — seed-sweep metrics, HPO summary, per-biopsy evaluation pages (after training / evaluation).
 
 A final aggregation step stitches the top-level cross-experiment index.

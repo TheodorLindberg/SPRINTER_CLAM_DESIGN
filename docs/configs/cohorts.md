@@ -7,8 +7,8 @@ The project-wide registry of **cohorts** — named, possibly multi-dataset group
 - `members` — patients in the cohort, listed per dataset source (`patients: all` or an explicit list); pooling across sources is what `(dataset_id, patient_id)` enables.
 - `holdout` — which patients take the holdout role, as an `explicit` list **or** a deterministic `fraction` + `seed`. Everyone else is `development`.
 
-!!! note "Membership is frozen"
-    Preprocessing resolves a cohort into a hashed membership manifest. If members change, the hash changes and dependent splits are flagged stale.
+!!! note "Resolved, validated, and reported"
+    The `resolve_cohort` rule (first step of preprocessing, runnable via the `cohort` target) freezes a cohort into a hashed membership manifest, **validates** it, and emits a **cohort HTML report**. If members change, the hash changes and dependent bundles/splits are flagged stale. See the [spec](../spec/preprocessing.md#cohort-resolution-per-cohort).
 
 ```yaml title="cohorts.yaml"
 --8<-- "cohorts.yaml"

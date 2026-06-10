@@ -2,6 +2,28 @@
 
 Contracts for [Stage 3](../design/05-dataset-preprocessing.md). [Overview](../design/05-dataset-preprocessing.md) · **Specification** · [Implementation](../impl/preprocessing.md).
 
+## Cohort resolution (per cohort)
+
+`resolve_cohort` turns a [`cohorts.yaml`](../configs/cohorts.md) entry into a frozen, validated membership before any bundle or fold is built.
+
+**`membership.csv`** — `dataset_id, patient_id, biopsy_id, role` (`role ∈ {development, holdout}`), plus a recorded **`membership_hash`** over the sorted rows.
+
+### Validation (hard errors)
+
+- Every listed patient exists in its dataset's [scan manifest](../design/03-data-ingestion.md#scan-manifest-the-contract).
+- Every `holdout` patient is a member; no patient has more than one role.
+- A fraction+seed holdout is reproducible (same members + seed → same split).
+- Across pooled datasets, the target label's `name`/`type` are comparable (no silent scale mismatch).
+
+### Warnings (logged, not fatal)
+
+- A member patient missing a requested stain (it simply contributes no bag).
+- A development patient with no value for the experiment target.
+
+### Report
+
+`results/reports/cohorts/{cohort}.html` — composition (members by dataset × role), label distribution per role, and the `membership_hash` + provenance. Built with the [report toolkit](../design/11-reports.md) (Plotly + standalone CSS), emitted here so a cohort can be eyeballed **before** heavy preprocessing.
+
 ## Patch coordinates (per scan · patch_config)
 
 HDF5, see [Embeddings & patches](../formats/embeddings-and-patches.md). Required:

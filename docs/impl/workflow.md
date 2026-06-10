@@ -38,10 +38,13 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
+| `resolve_cohort` | cohort | `cohorts.yaml` entry + member manifests + derived labels → `processed/cohorts/{cohort}/membership.csv` (+ hash) + **validation** + `results/reports/cohorts/{cohort}.html` |
 | `derive_labels` | dataset | raw labels → `processed/{dataset}/labels_derived.csv` |
 | `patch_coords` | scan × variant × patch_config | outline + axis → `…/coords/{patch_config}/{scan}__{variant}.h5` |
 | `embed` | scan × variant × patch_config × embedding_model × aug | coords + WSI → `…/embeddings/{embedding_model}/{aug}/{scan}__{variant}__{patch_config}.h5` (content-addressed cache) |
-| `assemble_bundle` | bundle | embeddings + derived labels + cohort → `bundles/{bundle_id}/` (manifest, labels, symlinks, metadata) |
+| `assemble_bundle` | bundle | embeddings + derived labels + **resolved cohort** → `bundles/{bundle_id}/` (manifest, labels, symlinks, metadata) |
+
+`resolve_cohort` is the first thing preprocessing does: it freezes membership (so the hash can detect drift), validates it, and emits the cohort report — runnable on its own (`cohort` target) before any heavy compute.
 
 ### Stage 4 · Model Training — `model_experiment.yaml`, `hpo.yaml`, `seeds.yaml`
 
@@ -81,11 +84,15 @@ flowchart TD
     AX --> PC[patch_coords]
     REG --> PC
     PC --> EMB[embed]
-    LB[derive_labels] --> BUN
+    M --> RC[resolve_cohort<br/>freeze · validate · report]
+    LB[derive_labels] --> RC
+    RC --> BUN
+    LB --> BUN
     EMB --> BUN[assemble_bundle]
 
     BUN --> TR[train_run]
-    FG[generate_folds] --> TR
+    RC --> FG[generate_folds]
+    FG --> TR
     BUN --> HPO[hpo]
     HPO -. promote top-N .-> TR
     TR --> AGG[aggregate_runs]
@@ -106,7 +113,7 @@ flowchart TD
 Each stage exposes a target so it can run alone; `all` runs the chain.
 
 ```text
-register · coords · embeddings · bundles
+register · cohort · coords · embeddings · bundles
 folds · train · hpo · evaluate · heatmaps · reports · all
 ```
 
@@ -114,7 +121,7 @@ folds · train · hpo · evaluate · heatmaps · reports · all
 
 Some rule sets are unknown until inputs are read, so they sit behind Snakemake **checkpoints**:
 
-- **Cohort resolution** — which `(patient, biopsy, stain)` bags actually exist (and their roles) is read from the frozen cohort membership before `assemble_bundle` / `train_run` targets resolve.
+- **Cohort resolution** — `resolve_cohort` freezes which `(patient, biopsy, stain)` exist and their roles; the resulting membership gates `assemble_bundle` and `generate_folds`.
 - **Model-experiment expansion** — the `runs` list × `fold_seeds` × `model_seeds` expands into concrete `train_run` jobs.
 - **Evaluation set** — the biopsies present in a bundle determine the `aggregate_beam` jobs.
 
@@ -123,6 +130,7 @@ Some rule sets are unknown until inputs are read, so they sit behind Snakemake *
 | Config | Drives |
 |---|---|
 | `base.yaml` | roots + registries for **every** rule |
+| `cohorts.yaml` | `resolve_cohort` (validate + freeze + report) |
 | `wsi_transformation.yaml` | `register` (registration + outlines + QC PNG), `biopsy_axis` |
 | `preprocessing.yaml` | `derive_labels`, `patch_coords`, `embed`, `assemble_bundle` |
 | `seeds.yaml` | `generate_folds` |

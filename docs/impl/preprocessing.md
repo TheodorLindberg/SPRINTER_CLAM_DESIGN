@@ -4,6 +4,32 @@ Recipe for [Stage 3](../design/05-dataset-preprocessing.md). [Overview](../desig
 
 Reference libraries: **shapely** (geometry), **tifffile/zarr** or **openslide** (WSI I/O), **PyTorch + timm/HF** (embedding), **h5py** (storage), **pandas/pyarrow** (manifests).
 
+## Cohort resolution
+
+Runs first, before any bundle/fold. Reference libraries: **pandas** (membership), **Plotly** (report).
+
+```python
+spec    = cohorts_yaml[cohort]
+members = []
+for entry in spec.members:                       # per dataset source
+    pts = all_patients(entry.dataset) if entry.patients == "all" else entry.patients
+    members += [(entry.dataset, p) for p in pts]
+
+holdout = (set(spec.holdout.explicit) if spec.holdout.explicit
+           else sample_fraction(members, spec.holdout.fraction, spec.holdout.seed))
+rows = [{"dataset_id": d, "patient_id": p,
+         "role": "holdout" if (d, p) in holdout else "development"}
+        for (d, p) in members]               # expanded to biopsy level via the manifest
+
+validate(rows)                                # hard errors above; warnings logged
+write_csv("…/membership.csv", rows)
+write_text("…/membership_hash", sha1(canonical(rows)))
+build_cohort_report(rows, labels)             # → reports/cohorts/{cohort}.html
+```
+
+- The **frozen membership + hash** is what [`assemble_bundle`](#bundle-assembly) and [`generate_folds`](training.md#fold-generation) read; a hash change flags dependents stale.
+- The report reuses the report toolkit (Plotly + `reports.css`): composition by dataset × role, label histograms per role, and provenance.
+
 ## Patch generation
 
 ```python
