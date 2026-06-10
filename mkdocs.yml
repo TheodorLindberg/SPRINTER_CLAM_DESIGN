@@ -3,7 +3,8 @@ site_name: Histology MIL Pipeline
 theme:
   name: material
   features:
-    - navigation.sections
+    - navigation.indexes
+    - navigation.top
     - content.code.copy
 
 markdown_extensions:
@@ -27,11 +28,11 @@ extra_javascript:
 
 nav:
   - Home: index.md
-  - Environment & Tooling: environment.md
-  - Design:
+  - Start here:
       - Overview: design/01-overview.md
-      - Data Model: design/02-data-model.md
       - Glossary: design/glossary.md
+  - Pipeline:
+      - Data Model: design/02-data-model.md
       - 1 · Data Ingestion: design/03-data-ingestion.md
       - 2 · WSI Transformation: design/04-wsi-transformation.md
       - 3 · Dataset Preprocessing: design/05-dataset-preprocessing.md
@@ -39,34 +40,36 @@ nav:
       - 5 · Evaluation: design/07-evaluation.md
       - 6 · Heatmap Generation: design/08-heatmaps.md
       - Reports: design/11-reports.md
-      - Open Questions: design/09-open-questions.md
-      - Appendix · Decisions: design/12-appendix.md
-      - Configuration:
-          - Overview: design/10-configuration.md
-          - Base: configs/base.md
-          - Cohorts: configs/cohorts.md
-          - Split registry (seeds): configs/seeds.md
-          - 2 · WSI Transformation: configs/wsi_transformation.md
-          - 3 · Dataset Preprocessing: configs/preprocessing.md
-          - 4 · Model Experiment: configs/model_experiment.md
-          - 4 · HPO: configs/hpo.md
-          - 5 · Evaluation: configs/evaluation.md
-          - 6 · Heatmap Generation: configs/heatmaps.md
-          - Reports: configs/reports.md
   - Specification:
-      - Overview: spec/index.md
-      - 2 · WSI Transformation: spec/wsi-transformation.md
-      - 3 · Dataset Preprocessing: spec/preprocessing.md
-      - 4 · Model Training: spec/training.md
-      - 5 · Evaluation (BEAM): spec/evaluation.md
+      - spec/index.md
+      - WSI Transformation: spec/wsi-transformation.md
+      - Dataset Preprocessing: spec/preprocessing.md
+      - Model Training: spec/training.md
+      - Evaluation (BEAM): spec/evaluation.md
   - Implementation:
-      - Overview: impl/index.md
+      - impl/index.md
       - Snakemake workflow: impl/workflow.md
-      - 2 · WSI Transformation: impl/wsi-transformation.md
-      - 3 · Dataset Preprocessing: impl/preprocessing.md
-      - 4 · Model Training: impl/training.md
-      - 5 · Evaluation (BEAM): impl/evaluation.md
+      - WSI Transformation: impl/wsi-transformation.md
+      - Dataset Preprocessing: impl/preprocessing.md
+      - Model Training: impl/training.md
+      - Evaluation (BEAM): impl/evaluation.md
+  - Configuration:
+      - design/10-configuration.md
+      - Base: configs/base.md
+      - Cohorts: configs/cohorts.md
+      - Split registry (seeds): configs/seeds.md
+      - WSI Transformation: configs/wsi_transformation.md
+      - Dataset Preprocessing: configs/preprocessing.md
+      - Model Experiment: configs/model_experiment.md
+      - HPO: configs/hpo.md
+      - Evaluation: configs/evaluation.md
+      - Heatmap Generation: configs/heatmaps.md
+      - Reports: configs/reports.md
   - Formats:
       - BEAM: formats/beam.md
       - Embeddings & Patches: formats/embeddings-and-patches.md
       - Outlines: formats/outlines.md
+  - Environment & Tooling: environment.md
+  - Decisions:
+      - Open Questions: design/09-open-questions.md
+      - Appendix: design/12-appendix.md
