@@ -39,6 +39,22 @@ save_h5(coords, embeddings, attrs)
 !!! note "Input normalization is fixed per model"
     The image mean/std is a **predetermined constant** carried in each registry entry's `NORM`, never fitted on the cohort. Most models share ImageNet stats (`[0.485, 0.456, 0.406]` / `[0.229, 0.224, 0.225]`); CLIP-based models (e.g. CONCH) use their own. Keep it per-model so that one exception doesn't silently mis-normalize.
 
+### Embedding models
+
+Each `embedding_model_id` maps to a registry module exposing `load(pretrained) -> nn.Module` and a fixed `NORM`. Supported encoders (the model page / repo holds the load snippet):
+
+| Model | Load | Dim | Norm | Requires |
+|---|---|---|---|---|
+| `uni2_h` | `timm.create_model("hf-hub:MahmoodLab/UNI2-h", …)` — [card](https://huggingface.co/MahmoodLab/UNI2-h) | 1536 | ImageNet | HF token + gated access |
+| `conch` | `conch.open_clip_custom.create_model_from_pretrained("conch_ViT-B-16", "hf_hub:MahmoodLab/conch")` → use `encode_image` — [card](https://huggingface.co/MahmoodLab/CONCH) | 512 | CLIP | HF token + gated access + `pip install conch` |
+| `gigapath` | `timm.create_model("hf_hub:prov-gigapath/prov-gigapath", …)` (tile encoder) — [card](https://huggingface.co/prov-gigapath/prov-gigapath) | 1536 | ImageNet | HF token + gated access |
+| `tenpercent_resnet18` | torchvision `resnet18` + the repo checkpoint, `fc=Identity` — [ozanciga/self-supervised-histopathology](https://github.com/ozanciga/self-supervised-histopathology) | 512 | ImageNet | local `tenpercent_resnet18.ckpt` from the repo (no HF) |
+
+!!! note "Access requirements"
+    `uni2_h`, `conch`, and `gigapath` are **gated** on HuggingFace: accept the terms on each model page with an account that has access, and set `HF_TOKEN` in the environment before the first download. `conch` additionally needs its `conch` package. `tenpercent_resnet18` is **not** on HF — download its checkpoint from the linked repo.
+
+To add a model: create a registry module (`load(pretrained) -> nn.Module` + `NORM`) and reference it by `embedding_model_id`.
+
 ### Content-addressed cache
 
 Compute the [key](../spec/preprocessing.md#cache-key) per scan-config; diff requested vs cached coords; **embed only the delta**, copy reused rows by `(x,y)` index, reassemble in requested order. (Generalises the old `coords_hash` incremental re-embed.)

@@ -101,6 +101,20 @@ All identifiers are stable and recorded in manifests, never inferred from filena
 | `run_id` | One run within a model experiment; carries tags |
 | `bag_id` | Fully qualified — see below |
 
+### Identifier grains
+
+Each id names a different **grain** — which is why several coexist rather than being redundant:
+
+| Id | Grain | What is keyed on it |
+|---|---|---|
+| `patient_id` | a person | folds / splits (patient-level) |
+| `biopsy_id` | one tissue core | **labels**; bags roll up to it |
+| `scan_id` = `{biopsy_id}__{stain}` | one **WSI** (biopsy × stain) | registration, outline, axis, **coords, embeddings**, QC PNG |
+| `bag_id` | scan **× processing** | one model input = scan + patch_config + source_variant + embedding_model |
+| `bundle_id` | a prepared cohort | a cohort × stain × embedding × variant |
+
+`scan_id` is the per-image unit (everything computed from a single slide); it is *derived* from `(biopsy_id, stain)`, not separately assigned.
+
 ### Bag naming
 
 A bag is identified by dataset origin, patient, biopsy, stain, patching configuration, source variant, and embedding model:
