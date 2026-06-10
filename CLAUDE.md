@@ -95,6 +95,10 @@ Draft configs in `docs/configs/` (base, cohorts, seeds, wsi_transformation, prep
 5. Evaluation — inference, per-biopsy aggregation into BEAM files, reports
 6. Heatmap Generation — attention overlays (PNG) + TissUUmaps GeoJSON. NOTE: attention is in the raw frame, so coords must be pushed through the variant's transform matrix to overlay on rigid/elastic.
 
+## Environment & tooling
+
+`docs/environment.md`. Container = Apptainer/Singularity `.sif`. **Production: self-contained SIF** (all Python deps baked in, immutable/reproducible). **Dev: SIF + mounted `uv` venv** (decided approach — fast add/test of packages without rebuild; bake into SIF to promote). Env vars: `HF_TOKEN` (gated models), `HF_HUB_OFFLINE=1`, SSL workarounds (`HF_HUB_DISABLE_SSL_VERIFICATION=1`, unset `SSL_CERT_FILE`), `CUDA_VISIBLE_DEVICES`. SLURM: launch script submits the Snakemake controller → per-rule worker jobs in the container. TissUUmaps viewer via docker (`tissuumaps/tissuumaps`, port 5100).
+
 ## Doc structure
 
 Design: `01-overview` · `02-data-model` · `glossary` (all terms + abbreviations) · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration` · `11-reports` · `12-appendix` (design decisions / rationale)

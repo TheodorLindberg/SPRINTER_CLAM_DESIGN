@@ -21,5 +21,6 @@ Status: **working draft.**
 | [Configuration](design/10-configuration.md) | Draft Snakemake config files (base + per stage) |
 | [Open Questions & Decisions](design/09-open-questions.md) | Resolved defaults and undecided items |
 | [Appendix · Decisions](design/12-appendix.md) | Design rationale — the "why" behind the spec |
+| [Environment & Tooling](environment.md) | Container (SIF / uv), env vars, scripts, TissUUmaps |
 
 Detailed file-format specs (BEAM, embeddings, outlines) live under [formats/](formats/beam.md).

@@ -27,6 +27,7 @@ extra_javascript:
 
 nav:
   - Home: index.md
+  - Environment & Tooling: environment.md
   - Design:
       - Overview: design/01-overview.md
       - Data Model: design/02-data-model.md
