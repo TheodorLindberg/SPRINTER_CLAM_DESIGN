@@ -1,0 +1,36 @@
+site_name: Histology MIL Pipeline
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - admonition
+  - pymdownx.details
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+
+nav:
+  - Home: index.md
+  - Design:
+      - Overview: design/01-overview.md
+      - Data Model: design/02-data-model.md
+      - 1 · Data Ingestion: design/03-data-ingestion.md
+      - 2 · WSI Transformation: design/04-wsi-transformation.md
+      - 3 · Dataset Preprocessing: design/05-dataset-preprocessing.md
+      - 4 · Model Training: design/06-model-training.md
+      - 5 · Evaluation: design/07-evaluation.md
+      - 6 · Heatmap Generation: design/08-heatmaps.md
+      - Open Questions: design/09-open-questions.md
