@@ -63,7 +63,7 @@ HPO is **kept apart from the seed sweep**, because HPO models are rarely revisit
 - Folds CSV.
 - Model seed.
 - Hyperparameters (learning rate, regularization, dropout rates).
-- Model architecture — **family → type → specific parameters** (hidden layer sizes, layer count, …). Predefined families include regression and CLAM / non-CLAM, covering attention mechanisms vs. mean pooling.
+- Model architecture — **family → type → specific parameters** (hidden layer sizes, layer count, …). Predefined families include regression and **CLAM** (clustering-constrained attention MIL) / non-CLAM, covering attention mechanisms vs. mean pooling.
 - Training name.
 - Output directory.
 

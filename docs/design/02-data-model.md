@@ -23,8 +23,8 @@ erDiagram
 | **Cohort** | A named, possibly multi-dataset **group of patients**. Within a cohort each patient has a **role** (`development` / `holdout`). Splits and bundles derive from it; see [Cohorts, roles, and splits](#cohorts-roles-and-splits). |
 | **Role** | A patient's place in a cohort: `development` (cross-validation) or `holdout` (locked test). |
 | **Biopsy** | A tissue sample from one patient. The unit labels and bags are keyed on. |
-| **Scan** | A digitized WSI from one biopsy and one stain. Any OpenSlide-supported format. |
-| **Stain** | The staining method applied to a scan (e.g. H&E and IHC stains). |
+| **Scan** | A digitized whole-slide image (WSI) from one biopsy and one stain. Any OpenSlide-supported format. |
+| **Stain** | The staining method applied to a scan — H&E, or an immunohistochemistry (IHC) stain (Ki67, PSA). |
 | **Patch** | A crop extracted from a scan at a configured size and resolution. |
 | **Embedding** | A feature vector produced from a patch by an embedding model. |
 | **Bag** | The set of patch embeddings used as one model input instance. |
@@ -162,4 +162,4 @@ Raw labels come from the ingestion CSV; **derived labels** (averages, max, binar
     A bundle prepared for evaluation-only on an external dataset may carry no labels at all. Every downstream stage must tolerate their absence.
 
 !!! note "Quartiles are metadata, not geometry"
-    Some scores (e.g. proliferation/expression indices) arrive as four per-biopsy quartile values. Because region information is unavailable, the quartile is carried as metadata only — it is **not** a spatial index — and the values are averaged in preprocessing.
+    Some scores (e.g. proliferation/expression indices) arrive as four per-biopsy **score quartiles**. Because region information is unavailable, they are carried as metadata only — **not** a spatial index — and averaged in preprocessing. These are distinct from the **geometric quartiles** (the spatial split along the biopsy axis used for heatmap regions); the two are never mapped to each other.

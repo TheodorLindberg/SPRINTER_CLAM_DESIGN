@@ -18,7 +18,8 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Fold seed / model seed** | Seeds varied independently in the [seed sweep](06-model-training.md#seed-sweep): the fold seed sets the partition, the model seed sets weight initialization. |
 | **Biopsy** | A tissue sample from one patient; the unit labels and bags are keyed on. |
 | **Label** | A target on a biopsy — `name`, `type`, `value`. Optional. **Derived labels** are computed from raw scores in preprocessing. |
-| **Quartile** | Per-biopsy score position carried as metadata (regions unknown) — not a spatial index. |
+| **Score quartile** | One of the 4 per-biopsy IHC scores (Ki67/PSA). Spatially unlocated, so **averaged** to a biopsy value; carried only as metadata. |
+| **Geometric quartile** | A spatial 4-way split of the tissue along the [biopsy axis](#images-patches--embeddings) (PCA line). Used for heatmap regions, **not** mapped to score quartiles. |
 
 ## Images, patches & embeddings
 
@@ -29,6 +30,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Source variant** | A scan's form: `raw` (training/metrics), `rigid`, or `elastic` (registered, for heatmaps). See [Data Model](02-data-model.md#source-variants). |
 | **Registration** | Aligning stains; `rigid` (rotation/translation) or `elastic` (warps to H&E). |
 | **Tissue outline** | Polygon array of tissue extent per variant; the **cross-stain intersection** is tissue present in every stain. See [Outlines](../formats/outlines.md). |
+| **Biopsy axis** | The PCA longitudinal line of a biopsy (in the raw/training frame); defines the geometric quartiles. See [WSI Transformation spec](../spec/wsi-transformation.md#biopsy-axis-pca-line). |
 | **Patch** | A crop from a scan at a configured size and resolution. |
 | **Embedding** | A feature vector from a patch, produced by an embedding model. |
 | **Content-addressed cache** | Embedding store keyed by coords + size + resolution + model + variant + augmentation; only misses are embedded. |
@@ -73,7 +75,8 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **TPE** | Tree-structured Parzen estimator (a Bayesian optimizer) |
 | **HED** | Hematoxylin–eosin–DAB colour space (stain jitter) |
 | **CLAM** | Clustering-constrained attention MIL (a model family) |
-| **VALIS** | Registration toolkit |
+| **VALIS** | WSI registration toolkit (also supplies tissue masks) |
+| **TissUUmaps** | Interactive WSI viewer (renders GeoJSON layers) |
 | **BEAM** | Biopsy Evaluation & Attention Map (this project's result format) |
 | **HDF5** | Hierarchical Data Format v5 (binary container) |
 | **GeoJSON** | JSON geometry format (TissUUmaps viewing) |

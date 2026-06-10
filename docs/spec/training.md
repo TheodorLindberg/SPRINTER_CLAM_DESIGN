@@ -4,7 +4,10 @@ Contracts for [Stage 4](../design/06-model-training.md). [Overview](../design/06
 
 ## Fold assignment (generated at train time)
 
-Per `(seed_set, fold_seed)`, over the bundle's **development** patients only:
+Per `(seed_set, fold_seed)` — **and `target`** when folds are stratified — over the **development** patients only:
+
+!!! warning "Stratified folds are target-dependent"
+    Stratifying by the target makes the split depend on it, so "identical splits across models sharing a `seed_set`" holds only for runs sharing the **same target**. That is exactly what aligns folds across stains predicting the *same* score. Key the fold artifact by `(seed_set, target, fold_seed)`; use an unstratified (pure patient) split if target-independent folds are wanted.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -21,10 +24,14 @@ run_id, model_experiment, bundle_id, cohort_id
 target, subset, seed_set, fold_seed, model_seed
 architecture { family, type, params }
 hyperparameters { ... }
+target_normalization { per fold: mean, std | class_map }   # fit on the train fold only
 metrics { train, val, test: {<metric>: value} }
 checkpoints { fold_k: path }
 membership_hash, git_commit, started_at, finished_at
 ```
+
+!!! warning "Persist the target normalization"
+    A regression model predicts in **normalized** target space. The per-fold `mean`/`std` (fit on that fold's train split) must be stored so evaluation can **de-normalize** predictions back to label units — and so a holdout ensemble de-normalizes *per checkpoint* before averaging.
 
 All run records aggregate into **`runs.parquet`** — one row per run, columns = the flattened tags + headline metrics + paths. This is the report backbone and the export table.
 

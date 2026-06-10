@@ -30,7 +30,7 @@ for bag in bundle.bags(subset):                       # bags for the chosen subs
                checkpoints_used=[c.id for c in ckpts])
 ```
 
-- `aggregate(preds)` — mean for `holdout`; identity for the single out-of-fold / full checkpoint.
+- `aggregate(preds)` — **de-normalize each checkpoint's prediction** with that checkpoint's `target_normalization` (back to label units) *before* combining; then mean for `holdout`, identity for the single out-of-fold / full checkpoint.
 - Attention transforms written to BEAM: `raw` (model weights), `sigmoid = σ(raw)`, `rank = percentile(raw)`.
 - Omit `/attention` entirely for non-attention architectures — do not write zeros.
 

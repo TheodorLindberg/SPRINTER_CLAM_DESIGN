@@ -26,7 +26,7 @@ A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned ac
 
 ## Tissue outlines
 
-Outlines are produced **in the registration step**, from a configurable tissue source — **VALIS's own segmentation** (default; the same masks it registers on) or an `hsv_otsu` mask — not a separate masking stage. They are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
+Outlines are produced **in the registration step**, from a configurable tissue source — the segmentation built into **VALIS** (default; a WSI registration toolkit — it uses the same masks it registers on) or an `hsv_otsu` mask — not a separate masking stage. They are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
 
 !!! note "Comparing tissue methods (development)"
     Both methods can be emitted to method-tagged paths and overlaid in the QC PNG, so they can be compared early on; only the configured method feeds downstream stages.

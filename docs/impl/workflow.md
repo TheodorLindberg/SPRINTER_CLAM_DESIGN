@@ -50,7 +50,7 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
-| `generate_folds` | seed_set × fold_seed | cohort dev patients + seeds → `results/folds/{seed_set}/{fold_seed}.csv` |
+| `generate_folds` | seed_set × target × fold_seed | cohort dev patients + seeds → `results/folds/{seed_set}/{target}/{fold_seed}.csv` (target in the key only when stratified) |
 | `train_run` | run_id × fold_seed × model_seed | bundle + folds → `results/experiments/{exp}/sweep/{run_id}/` (checkpoints, metrics, `run.json`) |
 | `aggregate_runs` | — | all `run.json` → `results/runs.parquet` |
 | `hpo` | hpo name | bundle + search space → `results/experiments/{name}/hpo/` (Optuna; segregated, top-N) |

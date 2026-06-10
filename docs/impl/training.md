@@ -39,6 +39,10 @@ aggregate_runs_parquet()
 
 Emit a [run record](../spec/training.md#run-record-runjson) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
 
+### Augmented bags
+
+If `use_augmented_embeddings`, the bundle's `augmented`-tagged bags are added to the **train split only**, in their patient's fold. They never enter `val` / `test` / `holdout` — otherwise metrics would be optimistic and the split would leak.
+
 ### Label balancing
 
 Computed per fold from the train split: class weights or weighted/over/under-sampling (classification); quantile-bin balancing (regression). Never fit on val/test.

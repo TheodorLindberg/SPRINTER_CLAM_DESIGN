@@ -27,7 +27,7 @@ Outlines and the QC overlay are produced **within the registration step** (one r
 
 ## Biopsy axis (PCA line)
 
-A per-scan longitudinal axis derived from the registered tissue, used for quartile subdivision and for ordering patches along the core.
+A per-scan longitudinal axis used for quartile subdivision and for ordering patches along the core. It is computed in the **`raw` frame** — the frame patches are drawn from for training — so a raw patch's quartile is well defined; registered-frame copies are derived for visualization only.
 
 ```text
 biopsy_axis

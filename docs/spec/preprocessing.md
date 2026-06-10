@@ -50,7 +50,7 @@ HDF5, see [Embeddings & patches](../formats/embeddings-and-patches.md). Required
 key = sha1( round(coords) ∥ patch_size ∥ mpp ∥ embedding_model_id ∥ source_variant ∥ augmentation_id )
 ```
 
-Per-row addressable; a run embeds only keys absent from the cache.
+Per-row addressable; a run embeds only keys absent from the cache. The cache is a **separate per-position store**; the per-`patch_config` embedding file (which Snakemake tracks) is assembled from cache hits + freshly embedded misses.
 
 ## Bundle (a prepared cohort)
 
@@ -76,6 +76,7 @@ Per-row addressable; a run embeds only keys absent from the cache.
 - `metadata.membership_hash` matches the cohort's frozen membership.
 - **No fitted statistics** anywhere in the bundle (raw labels and embeddings only).
 - A label-free bundle omits `labels.csv` and downstream stages tolerate its absence.
+- Augmented embedding sets (if enabled) appear as extra bags tagged `augmented`, used in **training folds only** — never `val` / `test` / `holdout`, and always in their patient's fold (no leakage, no optimistic metrics).
 
 ## Acceptance criteria
 

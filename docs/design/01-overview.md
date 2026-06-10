@@ -2,9 +2,12 @@
 
 ## Purpose
 
-A pipeline for preparing histology datasets, generating patch embeddings, training models, evaluating trained models, and producing reports and heatmaps.
+A pipeline for preparing histology **whole-slide image (WSI)** datasets, generating patch embeddings, training **multiple-instance learning (MIL)** models, evaluating them, and producing reports and heatmaps.
 
 The goal is **reproducible training and evaluation** across multiple datasets, stains, registration methods, patching strategies, embedding models, and label sources.
+
+!!! tip "Terms & abbreviations"
+    Project terms (cohort, bundle, bag, source variant, …) are introduced where they first appear; every term and abbreviation is also collected in the [Glossary](glossary.md).
 
 ## Why Snakemake
 
@@ -52,7 +55,7 @@ Each stage produces explicit artifacts that can be validated, reused, and traced
 | 2 · WSI Transformation | Once per dataset | Raw / rigid / elastic variants + outlines |
 | 3 · Dataset Preprocessing | Per patch/embedding config | Patches, embeddings, self-contained bundles |
 | 4 · Model Training | Per experiment | Checkpoints, sweep results, HPO reports |
-| 5 · Evaluation | Per evaluation run | BEAM files (per biopsy, per model), reports |
+| 5 · Evaluation | Per evaluation run | **BEAM** files — the project's per-biopsy result format (per biopsy, per run) — + reports |
 | 6 · Heatmap Generation | Per visual | Attention overlays (PNG) + TissUUmaps GeoJSON |
 
 A **bundle** (produced in Stage 3) is the hand-off unit between preprocessing and the model stages. The same bundle can either train a new model or be evaluated against an existing one — including label-free bundles for external evaluation.
@@ -72,7 +75,7 @@ A raw-trained model is applied to registered images purely to produce aligned vi
 
 ## Scope
 
-**In scope:** raw WSI ingestion, registration and outline detection, patch generation and embedding, bundle assembly, MIL model training (regression and classification families, with and without attention), seed sweeps, HPO, evaluation, aggregation, and heatmap generation.
+**In scope:** raw WSI ingestion, registration and outline detection, patch generation and embedding, bundle assembly, MIL model training (regression and classification families, with and without attention), seed sweeps, hyperparameter optimization (HPO), evaluation, aggregation, and heatmap generation.
 
 **Out of scope (first version):** manual annotation tools, interactive web-based model inspection, automatic correction of incorrect metadata, and long-term storage infrastructure beyond the defined directory and bundle structure.
 
