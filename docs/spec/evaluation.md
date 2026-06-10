@@ -31,7 +31,7 @@ This routing is what produces an honest CV-test score vs. a holdout score.
 
 ## Aggregation (per-bag → per-biopsy)
 
-A whole-scan bag is one `(biopsy, stain)` → one prediction → one BEAM (**1:1**; the "per-scan → per-biopsy" step is then just collection). If an experiment uses **per-quartile** or **multi-stain** bags, the per-bag results are aggregated into the biopsy's BEAM (predictions combined per the architecture; attention concatenated, tagged by quartile/stain). See [open issue: multi-stain bundles](../design/09-open-questions.md).
+A whole-scan bag is one `(biopsy, stain)` → one prediction → one BEAM (**1:1**; the "per-scan → per-biopsy" step is then just collection). **One stain per bundle is the current rule**, so 1:1 holds. Per-quartile bags, or the future [multi-stain, multi-target models](../design/09-open-questions.md#stains-per-bundle), turn this into a real aggregation (predictions per target; attention tagged by quartile/stain).
 
 ## Invariants
 

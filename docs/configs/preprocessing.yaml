@@ -24,7 +24,7 @@ embedding:
 
 bundle:                           # a bundle is a PREPARED COHORT (one per stain/embedding/variant)
   cohort: prostate_combined_v1
-  stains: [HE]
+  stains: [HE]                        # one stain per bundle for now (multi-stain = future)
   embedding_model: example_embedder_v1
   source_variant: raw             # raw for training/metrics
   include_labels: true            # false for label-free evaluation bundles

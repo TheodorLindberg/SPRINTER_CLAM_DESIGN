@@ -45,9 +45,21 @@ Patient, biopsy, and scan form a strict hierarchy, so metadata at a coarser leve
 
 ---
 
+## Stains per bundle
+
+**Decided: one stain per bundle (one model per stain) for now.** A biopsy's HE / Ki67 / PSA scans become separate bundles, each feeding its own model, so evaluation's per-bag → per-biopsy step is 1:1.
+
+### Future: multi-stain, multi-target models
+
+Example: a single model that takes **both Ki67 and PSA** patch embeddings for a biopsy and predicts **both** scores. To support this, the current contracts extend rather than change (single-stain stays the one-element case):
+
+- **Bundle** — allow `stains: [Ki67, PSA]`; the bundle then carries one bag per `(biopsy, stain)`, already distinguishable via `bag_id`'s stain field.
+- **Architecture** — one MIL branch per stain (each pools its own bag), fused at a head with **per-target outputs** (multi-task: one head per score). No spatial alignment needed — each stain is pooled independently and fused at the prediction level — so it stays compatible with raw-frame training.
+- **Config** — `target` becomes a set (e.g. `{ki67_score, psa_score}`); balancing and metrics are computed per target.
+- **Evaluation / BEAM** — this is where the per-bag → per-biopsy step becomes a **real aggregation**: attention stored per stain (`attention/Ki67`, `attention/PSA`), predictions per target.
+
 ## Genuinely open
 
-- **Single- vs multi-stain bundles.** A bundle's `stains` is a list, but the reference model (CLAM) is single-stain. Is a bundle always one stain (one model per stain — current assumption), or can one model consume several stains' bags per biopsy? This decides whether evaluation's per-bag → per-biopsy step is 1:1 or a real aggregation. Default: **single-stain** until a multi-stain architecture exists.
 - **Holdout ensembling policy.** Holdout patients are scored by all fold checkpoints; default is the **mean** prediction. Confirm vs. alternatives (median, best-fold, per-checkpoint kept).
 - **Combining input data sources in CLAM training preparation.** How to merge different input data sources when assembling CLAM training inputs is undecided.
 - **Exact bundle schema.** The schema shared by training and evaluation must be defined before implementation; deferred while the stage contracts settle.
