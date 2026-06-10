@@ -26,7 +26,7 @@ A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned ac
 
 ## Tissue outlines
 
-Outlines are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md). Likely produced via VALIS.
+Outlines are produced **in the registration step**, using **VALIS's own tissue segmentation** (the same masks it registers on) — not a separate masking stage. They are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
 
 - **Raw outline** — per stain.
 - **Rigid-registered outline** — per stain.
@@ -52,6 +52,8 @@ This stage exists almost entirely to serve heatmaps. The split in responsibility
 
 ## Outputs
 
+All from the single registration step:
+
 - Registered TIFFs (rigid, elastic) plus transformation matrices.
-- Per-stain outlines for each variant, in JSON and GeoJSON.
-- Per-scan cross-stain intersection outline.
+- Per-stain outlines for each variant (polygon arrays + GeoJSON), and the per-scan cross-stain intersection.
+- A **low-res QC PNG** per scan — the tissue outline drawn on the tissue — plus an HE thumbnail overlaying all stains' outlines, to verify results at a glance.

@@ -1,4 +1,4 @@
-# Spec · WSI Transformation
+1# Spec · WSI Transformation
 
 Contracts for [Stage 2](../design/04-wsi-transformation.md). Overview · **Specification** · [Implementation](../impl/wsi-transformation.md).
 
@@ -10,13 +10,16 @@ Contracts for [Stage 2](../design/04-wsi-transformation.md). Overview · **Speci
 
 ## Artifacts (per scan, per variant)
 
+Outlines and the QC overlay are produced **within the registration step** (one rule), using **VALIS's own tissue segmentation** — the same masks it registers on — so the tissue definition is consistent with the registration.
+
 | Artifact | Form | Notes |
 |---|---|---|
 | Registered image | OME-TIFF | `rigid`, `elastic`; pyramidal, tiled, LZW |
 | Rigid transform | `transform.json` | affine 3×3 (raw → rigid) + the reference (HE) frame size |
 | Elastic transform | displacement field ref + affine | non-rigid warp; stored as a VALIS/registration handle + the rigid prefix |
-| Tissue outline | polygon array (+ GeoJSON) | per stain per variant; see [Outlines](../formats/outlines.md) |
-| Cross-stain intersection | polygon array | per scan; from the `elastic` overlap of all stains |
+| Tissue outline | polygon array (+ GeoJSON) | per stain per variant; from VALIS tissue; see [Outlines](../formats/outlines.md) |
+| Cross-stain intersection | polygon array | per scan; from VALIS's `elastic` overlap mask |
+| **QC overlay** | low-res **PNG** | per scan (outline on tissue) + one HE thumbnail with all outlines + the intersection |
 | **Biopsy axis** | see below | per scan; the PCA longitudinal line |
 
 ## Biopsy axis (PCA line)

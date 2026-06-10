@@ -2,31 +2,41 @@
 
 Recipe for [Stage 2](../design/04-wsi-transformation.md). [Overview](../design/04-wsi-transformation.md) · [Specification](../spec/wsi-transformation.md) · **Implementation**.
 
-Reference libraries: **VALIS** (registration), **OpenCV** + **scikit-image** (masks), **shapely** (outlines), **tifffile/zarr** (I/O), **numpy** (PCA).
+Reference libraries: **VALIS** (registration **and** tissue masking), **OpenCV** (contours), **shapely** (outlines), **tifffile/zarr** (I/O), **numpy** (PCA).
 
-## Registration (VALIS)
+## Registration + outlines (one step)
 
-HE is the reference slide; all stains register to it.
+Registration and outline extraction happen **together**: VALIS already segments tissue to drive registration and holds the transforms, so the same rule emits the registered images, the transforms, the outlines, the cross-stain intersection, and a QC overlay. HE is the reference; all stains register to it.
 
-1. **Rigid** — `Valis(..., reference_img_f=HE, feature_detector_cls=DeDoDeFD, micro_rigid_registrar_cls=MicroRigidRegistrar)`, downscaling feature detection to `max_processed_image_dim_px ≈ 500`. Produces the affine `raw → rigid`.
-2. **Elastic (non-rigid)** — DISK keypoints + LightGlue matcher (SuperPoint + SuperGlue as a fallback for feature-rich samples), RANSAC-filtered. Produces the displacement field on top of the rigid prefix.
-3. **Warp & save** — `warp_and_save_slides(dir, compression="lzw")` → pyramidal OME-TIFF per variant. Persist the affine as `transform.json` and keep the VALIS object/handle for the non-rigid field.
-
-!!! note "Determinism"
-    Pin feature-detector and RANSAC seeds where the backend exposes them; record the VALIS version in the transform metadata so warps are reproducible.
+1. **Rigid** — `Valis(..., reference_img_f=HE, feature_detector_cls=DeDoDeFD, micro_rigid_registrar_cls=MicroRigidRegistrar)` (or DISK + LightGlue for feature-rich samples), downscaled to `max_processed_image_dim_px`. Per slide, the affine `raw → rigid` is recovered by warping reference points (`slide.warp_xy(pts, non_rigid=False)` → `SimilarityTransform.estimate`) and saved to `transform.json`.
+2. **Elastic (non-rigid)** — RANSAC-filtered matches → displacement field on top of the rigid prefix.
+3. **Warp & save** — `warp_and_save_slides(dir, compression="lzw")` → pyramidal OME-TIFF per variant. Keep the VALIS registrar so masks/points can be warped later.
 
 !!! warning "Persist the transform for heatmaps"
-    Because training is on `raw` but heatmaps render on a registered underlay, the `raw → variant` mapping must be **saved**, not just used to warp the image once. Persist the VALIS registration (affine + non-rigid field) so attention coordinates can be warped later with `warp_tools.warp_xy`. This is a new requirement: when models train directly on registered images, coordinates are already in the shared frame and no later warp is needed.
+    Training is on `raw` but heatmaps render on a registered underlay, so the `raw → variant` mapping must be **saved**, not just applied once. Persist the VALIS registration (affine + non-rigid field) so attention coordinates can be warped later with `warp_tools.warp_xy`. (Not needed when models train on already-registered images.)
 
-## Mask & outline extraction
+## Tissue outlines (VALIS)
 
-Per scan, at a low pyramid level:
+Use **VALIS's own tissue segmentation** (`valis.preprocessing`) — the same masks it registers on — rather than a bespoke threshold, so the outline matches the registered tissue.
 
-1. RGB → HSV; take the **S** channel; Gaussian blur to suppress tile texture.
-2. **Otsu** threshold (×~0.7 for HE) → binary tissue.
-3. Morphology: `closing(disk(10))` → `remove_small_objects` → `dilation` → `binary_fill_holes`.
-4. Contours (`cv2.findContours` or `shapely`) → simplify → scale vertices to level-0 → polygon array. Multiple disjoint regions → list of polygons.
-5. **Cross-stain intersection**: `shapely` intersection of all stains' `elastic` outlines for the scan.
+1. Take each slide's VALIS tissue mask. Warp it into the target frame with the registrar (`non_rigid=False` → `rigid`; `non_rigid=True` → `elastic`; inverse → `raw`).
+2. `cv2.findContours` → simplify → scale to level-0 → polygon array (multiple components → list of polygons). One outline per `(stain, variant)`.
+3. **Cross-stain intersection** — VALIS's **overlap mask** (the common tissue region across the elastically-aligned stains) → contour → polygon. This replaces a manual shapely intersection.
+
+!!! note "Custom mask fallback"
+    If a slide defeats VALIS segmentation, fall back to a simple HSV-saturation + Otsu + morphology mask. VALIS tissue is the default.
+
+## QC overlay (low-res PNG)
+
+Per scan, render a thumbnail with its outline drawn on the tissue so results are eyeballable:
+
+```python
+thumb = registrar.get_thumbnail(slide, variant)          # low-res RGB
+cv2.polylines(thumb, [outline_lowres.astype(int)], True, (255,0,0), 2)
+cv2.imwrite(f"{scan}__{variant}_outline.png", thumb)
+```
+
+Also emit one HE thumbnail with **all stains' outlines + the intersection** overlaid, to verify cross-stain alignment at a glance.
 
 ## Biopsy axis (PCA line)
 
@@ -59,4 +69,4 @@ quartile_cuts = t_min + np.linspace(0, 1, 5) * length_px
 
 ## Outputs
 
-Registered OME-TIFFs + transforms, per-variant per-stain outlines (polygon arrays + GeoJSON export), the per-scan cross-stain intersection, and the per-scan biopsy axis.
+From the single registration step: registered OME-TIFFs + transforms, per-variant per-stain outlines (polygon arrays + GeoJSON export), the cross-stain intersection, **a low-res QC PNG per scan + an HE overlay of all outlines**, and the per-scan biopsy axis.

@@ -29,10 +29,10 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
-| `register` | patient | normalized scans → `processed/{dataset}/{patient}/registered/{scan}.{variant}.ome.tiff` + `transform.json` |
-| `detect_outline` | scan × variant | image → `…/outlines/{scan}__{variant}.geojson` (+ polygon array) |
-| `cross_stain_intersection` | scan | elastic outlines → `…/outlines/{scan}__intersection.geojson` |
-| `biopsy_axis` | scan | mask/outline → `…/axis/{scan}.json` (PCA axis + quartile cuts) |
+| `register` | patient | normalized scans → registered OME-TIFFs + `transform.json` + **outlines** (per stain × variant, from VALIS tissue) + **cross-stain intersection** + **QC PNG** (outline-on-tissue, per scan + HE overlay) |
+| `biopsy_axis` | scan | outline → `…/axis/{scan}.json` (PCA axis + quartile cuts) |
+
+`register` does registration **and** outlines in one rule — VALIS already segments tissue and holds the transforms, so a separate outline rule would re-derive both. `biopsy_axis` stays separate (pure geometry on the outline); it can be inlined into `register` if preferred.
 
 ### Stage 3 · Dataset Preprocessing — `preprocessing.yaml`
 
@@ -75,13 +75,11 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 ```mermaid
 flowchart TD
-    M[scan manifest<br/>Stage 1, external] --> REG[register]
-    REG --> OUT[detect_outline]
-    OUT --> AX[biopsy_axis]
-    OUT --> XS[cross_stain_intersection]
+    M[scan manifest<br/>Stage 1, external] --> REG[register<br/>+ outlines + QC PNG]
+    REG --> AX[biopsy_axis]
 
     AX --> PC[patch_coords]
-    OUT --> PC
+    REG --> PC
     PC --> EMB[embed]
     LB[derive_labels] --> BUN
     EMB --> BUN[assemble_bundle]
@@ -98,7 +96,6 @@ flowchart TD
 
     BEAM --> HM[heatmap]
     REG --> HM
-    OUT --> HM
 
     AGG --> REP[report]
     BEAM --> REP
@@ -109,7 +106,7 @@ flowchart TD
 Each stage exposes a target so it can run alone; `all` runs the chain.
 
 ```text
-transform · outlines · coords · embeddings · bundles
+register · coords · embeddings · bundles
 folds · train · hpo · evaluate · heatmaps · reports · all
 ```
 
@@ -126,7 +123,7 @@ Some rule sets are unknown until inputs are read, so they sit behind Snakemake *
 | Config | Drives |
 |---|---|
 | `base.yaml` | roots + registries for **every** rule |
-| `wsi_transformation.yaml` | `register`, `detect_outline`, `biopsy_axis`, `cross_stain_intersection` |
+| `wsi_transformation.yaml` | `register` (registration + outlines + QC PNG), `biopsy_axis` |
 | `preprocessing.yaml` | `derive_labels`, `patch_coords`, `embed`, `assemble_bundle` |
 | `seeds.yaml` | `generate_folds` |
 | `model_experiment.yaml` | `train_run`, `aggregate_runs` |
