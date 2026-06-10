@@ -17,8 +17,12 @@ flowchart LR
 ### Input
 
 - Path to bundle.
+- **Cohort scope** — typically `holdout` (the locked cohort, scored once), or `development` for cross-validated test predictions.
 - Path to model (checkpoints, folds, parameters/architecture).
 - Evaluation tag — a readable name for the run.
+
+!!! note "Two distinct scores"
+    A **CV test score** (`development`, cross-validated) and a **holdout score** (`holdout`, the locked cohort) are different numbers — keep them labeled as such. See [Cohorts vs. splits](02-data-model.md#cohorts-vs-splits).
 
 ### Output
 

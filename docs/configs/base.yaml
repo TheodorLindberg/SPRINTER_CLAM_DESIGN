@@ -1,0 +1,19 @@
+# Base config — DRAFT
+# Shared roots and rarely-edited settings, layered UNDER every stage config so paths
+# live in one place — change an output root here, not in five files. Snakemake merges
+# multiple --configfile in order (base first, stage config overrides win).
+# See design/10-configuration.md.
+
+roots:
+  raw:        data/raw          # raw datasets (read-only)
+  normalized: data/normalized   # ingested, standardized
+  processed:  data/processed    # cached embeddings, outlines, patches
+  bundles:    data/bundles      # assembled bundles
+  results:    results           # runs + reports
+
+registries:
+  patient_sets: configs/patient_sets.yaml
+  seeds:        configs/seeds.yaml
+
+defaults:
+  source_variant: raw           # training/metrics default

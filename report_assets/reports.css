@@ -1,0 +1,58 @@
+/* Standalone report stylesheet — DRAFT.
+   Used by all generated HTML reports (design/11-reports.md). No framework dependency. */
+
+:root {
+  --fg: #1a1a1a;
+  --muted: #666;
+  --bg: #ffffff;
+  --panel: #f6f7f9;
+  --border: #e2e5e9;
+  --accent: #2b6cb0;
+  --good: #2f855a;
+  --warn: #c05621;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  color: var(--fg);
+  background: var(--bg);
+  margin: 0;
+  line-height: 1.5;
+}
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+/* Breadcrumbs */
+.breadcrumbs { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+.breadcrumbs a { color: var(--accent); text-decoration: none; }
+
+/* Provenance block — shown on every page */
+.provenance {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 1rem 0;
+}
+
+/* Tables */
+table.report { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+table.report th, table.report td { border-bottom: 1px solid var(--border); padding: 0.4rem 0.6rem; text-align: left; }
+table.report th { position: sticky; top: 0; background: var(--panel); }
+
+/* Export controls per table */
+.table-export { font-size: 0.8rem; margin: 0.4rem 0; }
+.table-export a { color: var(--accent); text-decoration: none; margin-right: 0.75rem; }
+
+/* Plot cards */
+.plot-card { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; margin: 1rem 0; }
+
+/* Cohort / fold role badges */
+.badge { display: inline-block; padding: 0 0.4rem; border-radius: 4px; font-size: 0.75rem; }
+.badge.development { background: #ebf8ff; color: var(--accent); }
+.badge.holdout { background: #fffaf0; color: var(--warn); }

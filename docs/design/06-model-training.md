@@ -1,24 +1,30 @@
 # Stage 4 · Model Training
 
-Given a bundle, this stage either **evaluates it against an already-trained model** or **trains a new one**. The training side is itself a small Snakemake pipeline.
+A bundle is either **evaluated against an existing model** or used to **train new ones**. Training is defined as an **experiment** that fans out into many runs.
 
 ```mermaid
 flowchart TD
-    B[Bundle] --> FG[Fold generation\n+ split registry seeds.yaml]
+    EXP[Experiment config\nbundles × architecture × target] --> FG[Fold generation\nseed_set → seeds.yaml]
+    FG --> HPO[HPO trials\nsegregated · top-N kept]
     FG --> SW[Seed sweep\nfold seed × model seed]
-    SW --> HPO[HPO\ngrid + Bayesian]
+    HPO -->|promote best N| SW
     SW --> TF[Training function]
-    HPO --> TF
 ```
 
 ---
 
+## Experiments and runs
+
+One [experiment config](../configs/training.md) declares the matrix — `bundles` (possibly several stains/embeddings), architecture, target, seed sweep, optional HPO — and **fans out into many runs**; runs are generated, never written as individual config files. Each run emits a **run record** aggregated into `runs.parquet` (see [Reports](11-reports.md)).
+
+Training operates on a bundle at the **`development`** cohort scope (or `all` for a final retrain after holdout). Folds are assigned only over `development` bags; `holdout` bags are filtered out and never enter a fold.
+
 ## Fold generation
 
-Generates folds from fold seeds. A **split registry** (`seeds.yaml`) is always included: it names a dataset and lists the seeds to use, so all models share identical fold splits and seeds can be referenced later by name.
+Generates folds from fold seeds over the **development cohort** of the bundle's [patient set](../configs/patient_sets.md). A project-wide **split registry** ([`seeds.yaml`](../configs/seeds.md)) holds every seed/split configuration under `seed_sets`, indexed by name; a run picks one with `seed_set:`, so all models sharing that name get identical splits — and because folds are assigned to *patients*, every stain/embedding bundle from the same set inherits the same split.
 
-!!! warning "Patient count changes invalidate splits"
-    If the patient count changes, the pipeline raises a prominent warning/error telling the user that splits have been updated.
+!!! warning "Membership changes invalidate splits"
+    Splits are computed against the patient set's frozen, hashed membership. If membership changes (the hash differs), the pipeline raises a prominent warning that splits are stale.
 
 ---
 
@@ -35,7 +41,13 @@ It aggregates results and emits train/test/loss plots plus a CSV (or similar) of
 
 ## Hyperparameter optimization
 
-Supports **grid search** and a **Bayesian optimizer** (e.g. Optuna / TPE). Produces an HTML report with easy-to-read visualizations.
+Supports **grid search** and a **Bayesian optimizer** (e.g. Optuna / TPE), declared as a search space in the experiment config — hundreds of trials, zero extra config files.
+
+HPO is **kept apart from the seed sweep**, because HPO models are rarely revisited while the sweep models are the ones you keep:
+
+- HPO outputs live under `results/experiments/{exp}/hpo/` with their **own index**; the seed-sweep models live under `sweep/`, easy to find.
+- `reports.yaml → hpo.keep_checkpoints` decides storage (`all` / `top_n` / `none`); by default only the **top-N** are retained.
+- **Workflow:** HPO explores → promote the best N hyperparameters → run a **seed sweep** on them. The sweep is the durable result; HPO is exploratory.
 
 ---
 
@@ -72,14 +84,9 @@ Balancing is applied **per fold, from the training split only** — consistent w
 
 ## Augmentation
 
-Training data augmentation is supported. Because embeddings are **precomputed and cached**, augmentation defaults to the **bag / embedding level** rather than image space:
+Augmentation is **not** a training concern in this pipeline. Meaningful histology augmentation (flips, rotations, stain/color jitter) changes the pixels the embedding model sees, so it must run the **foundation model** on the augmented patches — that happens in [Dataset Preprocessing](05-dataset-preprocessing.md#augmentation), where each augmented variant is embedded and cached as its own set.
 
-- Instance (patch) dropout within a bag.
-- Bag subsampling / resampling.
-- Feature-space noise or mixup.
-
-!!! note "Image-space augmentation conflicts with the cache"
-    True image augmentations (rotation, color jitter, …) would require re-embedding the augmented patches, which the content-addressed cache does not cover. If image-space augmentation is needed, it must happen at embedding time with the augmented variants cached under distinct keys. Default is bag/embedding-level augmentation.
+Training only decides **whether to sample** those augmented embedding sets (`use_augmented_embeddings` in [`training.yaml`](../configs/training.md)).
 
 ## Metrics by label type
 

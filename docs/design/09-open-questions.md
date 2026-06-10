@@ -35,13 +35,13 @@ This dissolves the either/or and keeps user-written ingesters flexible.
 
 ---
 
-## Patient-exclusion leakage {#patient-exclusion-leakage}
+## Holdout leakage {#patient-exclusion-leakage}
 
-**Recommended default: no fitted statistics in bundles.**
+**Recommended default: no fitted statistics in bundles + holdout filtered from all folds.**
 
-The leakage risk in the three-bundle scheme (training / full / held-out) is *derived state* — chiefly label normalization statistics, but also any quantity fitted on the cohort (distribution-derived thresholds, class weights).
+The leakage risk is *derived state* — chiefly label normalization statistics, but also any quantity fitted on the data (distribution-derived thresholds, class weights).
 
-The clean rule: bundles carry **raw** labels and embeddings only. Anything fitted is computed at training time from the **training split alone**. The three bundles then differ only in which raw rows they contain and share no derived state by construction — converting the validation worry into a design invariant.
+The clean rule: bundles carry **raw** labels and embeddings only. Anything fitted is computed at training time from the **training fold alone**. Combined with the `holdout` cohort being filtered out of every fold (it is only ever scored at evaluation), holdout shares no derived state with development by construction — converting the validation worry into a design invariant. See [Cohorts vs. splits](02-data-model.md#cohorts-vs-splits).
 
 **Still open:** confirm that any embedding-time stain normalization is a fixed pretrained transform (not fitted on this cohort); if it were fitted, it would need the same treatment.
 
@@ -49,11 +49,9 @@ The clean rule: bundles carry **raw** labels and embeddings only. Anything fitte
 
 ## Metadata file scope {#metadata-file-scope}
 
-**Recommended default: extra columns on the existing entity manifests; no separate metadata file yet.**
+**Decided: metadata rides on the scan manifest as columns at any entity level, and is forwarded through preprocessing into the bundle and BEAM.**
 
-Patient, biopsy, and scan form a strict hierarchy, so metadata at a coarser level is always reachable at a finer level by ID inheritance (a scan inherits its biopsy's and patient's metadata via the join). That means we never *need* three separate metadata stores — one mechanism plus the hierarchy suffices.
-
-The minimal version: allow arbitrary extra columns on the per-entity manifests (patients / biopsies / scans) and let downstream stages join by ID. This supports all three granularities with no new machinery.
+Patient, biopsy, and scan form a strict hierarchy, so metadata at a coarser level is always reachable at a finer level (patient-level columns repeat across that patient's rows). No separate metadata store is needed — extra manifest columns plus the hierarchy suffice. Preprocessing carries this metadata forward so it is present in the bundle manifest and in each BEAM file, without re-joining to the source. See [Data Ingestion · Scan manifest](03-data-ingestion.md#scan-manifest-the-contract).
 
 **Still open:** whether a free-form JSON blob column is needed for deeply nested or irregular metadata. Flat columns now; JSON blob deferred until a real case demands it.
 

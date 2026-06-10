@@ -2,72 +2,32 @@
 
 The Snakemake-driven stages each take a YAML config. Since stages run individually (and increasingly often), each has its own config file rather than one monolith. Stage 1 (Data Ingestion) is outside Snakemake and user-written, so it has no config here.
 
+The full files are shown on their own pages (under **Configuration** in the sidebar) and embedded directly from `docs/configs/` — the YAML you see *is* the file.
+
 !!! warning "These are drafts"
-    The configs below live in `docs/configs/` and are embedded here directly — the YAML you see *is* the file. Field names and structure will change as stages are implemented.
+    Field names and structure will change as stages are implemented.
+
+## Config files
+
+| Config | Stage | Controls |
+|---|---|---|
+| [`base.yaml`](../configs/base.md) | all | Shared **roots** + rarely-edited settings; layered under every stage config |
+| [`patient_sets.yaml`](../configs/patient_sets.md) | — | Named patient sets (multi-dataset) + **cohort** partition (development / holdout) |
+| [Split registry (`seeds.yaml`)](../configs/seeds.md) | 4 | Named seed/split sets referencing a patient set; shared by all models |
+| [`wsi_transformation.yaml`](../configs/wsi_transformation.md) | 2 | Variants to produce, registration backend, outline + quartile options |
+| [`preprocessing.yaml`](../configs/preprocessing.md) | 3 | Derived labels, patching, embedding, **augmentation**, **bundle assembly** from a patient set |
+| [`training.yaml`](../configs/training.md) | 4 | Bundle, `seed_set`, **cohort scope**, target, architecture, **balancing**, sweep, HPO |
+| [`evaluation.yaml`](../configs/evaluation.md) | 5 | Bundle + model, **cohort scope** (holdout), attention variants, output |
+| [`heatmaps.yaml`](../configs/heatmaps.md) | 6 | Source variant, attention type, colormap, render + output options |
+| [`reports.yaml`](../configs/reports.md) | — | Plot backend, standalone CSS, **HPO segregation**, table export |
 
 ## Cross-cutting notes
 
-- **`seeds.yaml` is the split registry.** All models reference it so fold splits are identical and seed-addressable by name. A change in patient count raises a stale-splits warning.
-- **Patient exclusion** lives in `preprocessing.yaml` and produces the three bundles (training / full / held-out).
-- **Balancing and augmentation** live in `training.yaml` and apply per fold from the training split only.
+- **`base.yaml` holds the roots.** Output paths, data roots, and registry locations live there once; stage configs are layered on top (base first, stage overrides win) and reference the roots instead of hard-coding paths.
+- **`training.yaml` is an experiment definition** that fans out into many runs (seed sweep × HPO) — config count stays O(experiments), not O(models). See [Reports](11-reports.md).
+- **Patient sets are the root.** `patient_sets.yaml` defines named, possibly multi-dataset patient collections, each partitioned into a `development` and a `holdout` cohort. Both splits and bundles derive from a patient set.
+- **Split registry references a patient set, not a dataset.** `seeds.yaml` holds named seed/split configs under `seed_sets`; each names a `patient_set`, and folds are computed over its development cohort. A change in the set's frozen membership raises a stale-splits warning.
+- **Bundles carry cohorts as tags, not as separate bundles.** `preprocessing.yaml` assembles one bundle per patient set × stain × embedding × variant; each bag is tagged `development` / `holdout`. Stages pick a **cohort scope** (`development` / `holdout` / `all`) — the union is `all`, never a hand-built list.
+- **Augmentation lives in preprocessing**, not training — it runs the embedding foundation model on augmented patches and caches each variant as its own embedding set. Training only chooses whether to sample those sets.
+- **Balancing** lives in `training.yaml` and applies per fold from the training split only.
 - A single merged `config.yaml` with per-stage sections is a possible alternative if the per-file split proves cumbersome — left open.
-
----
-
-## Split registry — `seeds.yaml`
-
-Names the dataset and the seeds every model shares, so fold splits are reproducible and referenceable by name. Used by Stage 4.
-
-```yaml title="seeds.yaml"
---8<-- "seeds.yaml"
-```
-
----
-
-## Stage 2 · WSI Transformation — `wsi_transformation.yaml`
-
-Which source variants to produce, the registration backend, and outline options (including geometric quartile subdivision and the GeoJSON export for TissUUmaps).
-
-```yaml title="wsi_transformation.yaml"
---8<-- "wsi_transformation.yaml"
-```
-
----
-
-## Stage 3 · Dataset Preprocessing — `preprocessing.yaml`
-
-Derived labels, patching strategy, embedding model + cache, and bundle assembly. The `patient_exclusion` block drives the three-bundle output.
-
-```yaml title="preprocessing.yaml"
---8<-- "preprocessing.yaml"
-```
-
----
-
-## Stage 4 · Model Training — `training.yaml`
-
-Target label, architecture (family → type → params), hyperparameters, **label balancing**, **augmentation**, the seed sweep, and HPO.
-
-```yaml title="training.yaml"
---8<-- "training.yaml"
-```
-
----
-
-## Stage 5 · Evaluation — `evaluation.yaml`
-
-Which bundle and model to evaluate, which attention variants to write into the [BEAM files](../formats/beam.md), and where to put them.
-
-```yaml title="evaluation.yaml"
---8<-- "evaluation.yaml"
-```
-
----
-
-## Stage 6 · Heatmap Generation — `heatmaps.yaml`
-
-Underlay source variant, attention type and colormap, and render/output options. Note the raw-frame coordinate caveat in [Heatmaps](08-heatmaps.md).
-
-```yaml title="heatmaps.yaml"
---8<-- "heatmaps.yaml"
-```

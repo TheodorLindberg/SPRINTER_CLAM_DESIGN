@@ -45,38 +45,39 @@ Each embedding is keyed by its **WSI patch coordinates + patch size + resolution
 
 This avoids relying on one grid being a structural subset of another, which breaks under outline cropping, edge handling, or a shifted grid origin. This is the recommended approach; alternatives are weighed in [Open Questions](09-open-questions.md#embedding-reuse-strategy).
 
+### Augmentation
+
+Data augmentation belongs to this stage, not training, because meaningful histology augmentation (flips, rotations, stain/color jitter) changes the pixels the embedding model sees — so each augmented patch must be run through the **foundation model** and embedded.
+
+Augmented variants are embedded and cached as **their own embedding sets** (the augmentation variant is part of the cache key). Training then chooses whether to sample them. This keeps the expensive foundation-model work out of the training loop and reuses augmented embeddings across runs.
+
 ---
 
 ## Bundle preparation
 
-Produces a single self-contained **bundle** folder with everything one training or evaluation run needs:
+A **bundle** materializes one [patient set](../configs/patient_sets.md) for one `(stain · embedding model · source variant · patch config)`. It is the self-contained hand-off unit to the model stages. Assembly is cheap (mostly symlinks), so many bundles are built from the same cached embeddings.
 
-- A CSV mapping labels — **all** dataset labels are included, regardless of the eventual target (absent for label-free evaluation bundles).
+A bundle folder contains:
+
+- A bundle manifest — one row per bag, with its `cohort` tag (`development` / `holdout`), patient/biopsy ids, and embedding path.
+- A label CSV — **all** labels, regardless of the eventual target (absent for label-free evaluation bundles).
 - Symlinked or copied embedding (HDF5) and tissue (GeoJSON) files; patch coordinates as HDF5.
-- Metadata (embedding model, patch settings, source variant, …).
+- Metadata — patient set + frozen membership hash, embedding model, patch settings, source variant, **plus the entity-level metadata columns forwarded from the [scan manifest](03-data-ingestion.md#scan-manifest-the-contract)**.
 
-A bundle is not training-specific: the same preprocessing output can feed an evaluation-only run on an external dataset, possibly without labels.
+### One bundle, cohorts as tags
+
+The bundle contains **every** bag of the patient set; each is tagged with its cohort role from the patient set definition. There is **not** a separate bundle per cohort. Stages select a **cohort scope** — `development`, `holdout`, or `all` — rather than juggling a list of bundles. See [Data Model · Bundles and cohorts](02-data-model.md#bundles-and-cohorts).
+
+A bundle is not training-specific: the same one can feed CV training (`development`), final holdout evaluation (`holdout`), or a final retrain (`all`). An external evaluation set is simply a different patient set with its own bundle, possibly without labels.
 
 !!! note "Folds are NOT generated here"
-    This is deliberate, to support the **seed sweep** (see [Model Training](06-model-training.md)), which trains and evaluates across a varying number of model seeds and fold seeds for a more accurate estimate. Folds belong to the training stage.
+    This is deliberate, to support the **seed sweep** (see [Model Training](06-model-training.md)). Folds are assigned at training time over the `development` cohort; the bundle carries only the cohort tag, not fold assignments.
 
 !!! warning "No fitted statistics in bundles"
-    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training split only**, never at bundle-preparation time across all patients. This is what guarantees the patient-exclusion bundles below share no derived state. See [Open Questions](09-open-questions.md#patient-exclusion-leakage).
-
-### Patient exclusion
-
-Patient exclusion is a designed-in feature. A Snakemake config flag plus an array of patients to exclude from training produces three bundle variants:
-
-| Bundle | Contents | Use |
-|---|---|---|
-| Training | All patients **minus** the test set | Model development |
-| Full | All patients | Final training on the full cohort |
-| Held-out | Test set only | Leakage-free held-out evaluation |
-
-This guarantees a chosen set of patients can be fully excluded from training, so held-out evaluation has no leakage.
+    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training fold only**, never at bundle-preparation time. Combined with the holdout cohort being filtered out of all folds, this keeps holdout strictly leakage-free. See [Open Questions](09-open-questions.md#patient-exclusion-leakage).
 
 ---
 
 ## Open items
 
-- Define the exact bundle schema (shared by training and evaluation).
+- Define the exact bundle manifest schema (shared by training and evaluation).

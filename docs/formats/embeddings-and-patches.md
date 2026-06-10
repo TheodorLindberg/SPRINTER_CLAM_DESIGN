@@ -32,6 +32,7 @@ Each embedding row is addressed by everything that affects its value:
 | `patch_resolution` | Same coords at another magnification ≠ same content |
 | `embedding_model_id` | Different encoder → different vector |
 | `source_variant` | raw / rigid / elastic differ in pixels |
+| `augmentation_id` | Augmented patch variants are embedded and cached separately |
 
 A run looks up by key and embeds only cache misses, so different overlap settings reuse shared positions automatically. See [the reuse decision](../design/09-open-questions.md#embedding-reuse-strategy).
 

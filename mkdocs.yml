@@ -4,7 +4,6 @@ theme:
   name: material
   features:
     - navigation.sections
-    - navigation.expand
     - content.code.copy
 
 markdown_extensions:
@@ -37,8 +36,19 @@ nav:
       - 4 · Model Training: design/06-model-training.md
       - 5 · Evaluation: design/07-evaluation.md
       - 6 · Heatmap Generation: design/08-heatmaps.md
-      - Configuration: design/10-configuration.md
+      - Reports: design/11-reports.md
       - Open Questions: design/09-open-questions.md
+      - Configuration:
+          - Overview: design/10-configuration.md
+          - Base: configs/base.md
+          - Patient sets: configs/patient_sets.md
+          - Split registry (seeds): configs/seeds.md
+          - 2 · WSI Transformation: configs/wsi_transformation.md
+          - 3 · Dataset Preprocessing: configs/preprocessing.md
+          - 4 · Model Training: configs/training.md
+          - 5 · Evaluation: configs/evaluation.md
+          - 6 · Heatmap Generation: configs/heatmaps.md
+          - Reports: configs/reports.md
   - Formats:
       - BEAM: formats/beam.md
       - Embeddings & Patches: formats/embeddings-and-patches.md

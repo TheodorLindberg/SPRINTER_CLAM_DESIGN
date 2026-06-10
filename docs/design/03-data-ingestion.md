@@ -18,6 +18,15 @@ patient_<x>/
 
 A flat naming convention is also viable. **The pipeline does not depend on the on-disk layout** — it reads a generated manifest of IDs → paths (see [decision in Open Questions](09-open-questions.md#normalized-format-folders-vs-flat)). Folders vs. flat is therefore a presentation choice for the ingester, not a pipeline constraint.
 
+## Scan manifest (the contract)
+
+The manifest is the real interface to the pipeline: one row per scan, mapping entity ids → WSI path, plus any metadata columns.
+
+- **Keys:** `dataset_id`, `patient_id`, `biopsy_id`, `stain`, `scan_id`, and the WSI path.
+- **Metadata, at any level:** extra columns describe the patient, biopsy, or scan (e.g. age, site, scanner, stain details). A column's *level* is just which entity it describes — patient-level values simply repeat across that patient's rows. No separate metadata file is needed.
+
+This metadata is **carried through preprocessing and forwarded into the bundle and the [BEAM](../formats/beam.md) file**, so it is available everywhere downstream (reports, heatmaps) without re-joining to the original source. See the [resolved metadata decision](09-open-questions.md#metadata-file-scope).
+
 ---
 
 ## Labels
@@ -38,12 +47,8 @@ Ingestion establishes the identifiers a bag is later built from: dataset origin,
 
 ---
 
-## Metadata note
-
-A metadata file that survives through the pipeline would let later stages reach extra information (e.g. stain details). Scope is undecided — metadata can be per-patient, per-biopsy, or per-scan. The recommended minimal approach (extra columns on the existing entity manifests, resolved by ID inheritance) is described in [Open Questions](09-open-questions.md#metadata-file-scope).
-
 ---
 
 ## Open items
 
-- Define the exact pre–preprocessing normalized structure (the manifest contract).
+- Define the exact manifest column schema (keys + reserved metadata conventions).
