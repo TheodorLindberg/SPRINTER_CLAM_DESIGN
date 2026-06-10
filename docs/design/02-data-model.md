@@ -88,7 +88,7 @@ All identifiers are stable and recorded in manifests, never inferred from filena
 | Identifier | Notes |
 |---|---|
 | `dataset_id` | Names the dataset **source**, optionally with a version (e.g. `sahlgrenska_2018`). Never `latest`. |
-| `patient_id` | Unique within dataset |
+| `patient_id` | Unique within dataset. An **arbitrary index** (e.g. `p0001`) — **not** a real patient / PAD / scan number, to keep data de-identified |
 | `biopsy_id` | Unique within patient |
 | `scan_id` | **Derived** `{biopsy_id}__{stain}` — a scan is keyed by `(biopsy_id, stain)`, not a separately assigned id |
 | `patch_config_id` | Patch size, resolution, overlap/stride |

@@ -7,7 +7,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | Term | Meaning |
 |---|---|
 | **Dataset** | The patients, biopsies, scans, and labels from one **source**. `dataset_id` names the source and may carry a version (e.g. `sahlgrenska_2018`). |
-| **Patient** | A biological individual, identified globally by `(dataset_id, patient_id)`. |
+| **Patient** | A biological individual, identified globally by `(dataset_id, patient_id)`. `patient_id` is an **arbitrary index within the dataset** (e.g. `p0001`) — deliberately **not** a real patient / PAD / scan number, so the data stays de-identified. |
 | **Cohort** | A named, possibly multi-dataset **group of patients**. Splits and bundles derive from it. See [Data Model](02-data-model.md#cohorts-roles-and-splits). |
 | **Role** | A patient's place in a cohort: `development` (cross-validation) or `holdout` (locked test). |
 | **Development** | The role/patients used for model development; all cross-validation happens here. |
