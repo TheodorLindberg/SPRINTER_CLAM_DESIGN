@@ -31,8 +31,14 @@ Each scan exists as `raw` / `rigid` / `elastic`.
 ## Storage formats
 
 Binary is the source of truth; GeoJSON is the TissUUmaps view (pipeline never computes from GeoJSON).
-- Embeddings → HDF5. Patch coordinates → HDF5. Tissue outlines → GeoJSON (+JSON). Transform matrices → JSON.
-- **BEAM** = the project's own per-biopsy, per-model evaluation result format. Stored as HDF5, `{biopsy_id}__{model_id}.beam.h5`. Contains attention (raw/sigmoid/rank), prediction, labels, patch coords, outline, metadata. Appendable by design. (Name is provisional — easy to rename.)
+- Embeddings → HDF5. Patch coordinates → HDF5. Tissue outlines → **polygon arrays** (+ GeoJSON export). Transform matrices → JSON.
+- **BEAM** = the project's own per-biopsy, per-model evaluation result format. Stored as HDF5, `{biopsy_id}__{model_id}.beam.h5`. Contains attention (raw/sigmoid/rank), prediction, labels, patch coords, outline (polygon array, divisible into quartiles), metadata. Appendable by design. (Name is provisional — easy to rename.)
+- Detailed format specs live in `docs/formats/` (beam, embeddings-and-patches, outlines) — kept separate so design docs stay overview-level. Stage docs give rough bullets + a link.
+
+## Configuration
+
+Draft per-stage Snakemake configs in `configs/` (wsi_transformation, preprocessing, training, evaluation, heatmaps) + `seeds.yaml` split registry. All marked DRAFT. Overview in `docs/design/10-configuration.md`. Per-file (not monolithic) because stages run individually; single merged config left as an open alternative.
+- Label balancing + augmentation live in `training.yaml` / Stage 4 doc. Augmentation defaults to bag/embedding level because embeddings are cached — image-space augmentation would require re-embedding under new cache keys.
 
 ## Six stages
 
@@ -45,4 +51,6 @@ Binary is the source of truth; GeoJSON is the TissUUmaps view (pipeline never co
 
 ## Doc structure
 
-`01-overview` · `02-data-model` · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions`
+Design: `01-overview` · `02-data-model` · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration`
+Formats: `docs/formats/{beam,embeddings-and-patches,outlines}.md`
+Configs: `configs/*.yaml` (drafts)

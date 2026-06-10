@@ -16,6 +16,7 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - tables
+  - attr_list
   - admonition
   - pymdownx.details
 
@@ -33,4 +34,9 @@ nav:
       - 4 · Model Training: design/06-model-training.md
       - 5 · Evaluation: design/07-evaluation.md
       - 6 · Heatmap Generation: design/08-heatmaps.md
+      - Configuration: design/10-configuration.md
       - Open Questions: design/09-open-questions.md
+  - Formats:
+      - BEAM: formats/beam.md
+      - Embeddings & Patches: formats/embeddings-and-patches.md
+      - Outlines: formats/outlines.md
