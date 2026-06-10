@@ -46,7 +46,7 @@ Each `embedding_model_id` maps to a registry module exposing `load(pretrained) -
 | Model | Load | Dim | Norm | Requires |
 |---|---|---|---|---|
 | `uni2_h` | `timm.create_model("hf-hub:MahmoodLab/UNI2-h", …)` — [card](https://huggingface.co/MahmoodLab/UNI2-h) | 1536 | ImageNet | HF token + gated access |
-| `conch` | `conch.open_clip_custom.create_model_from_pretrained("conch_ViT-B-16", "hf_hub:MahmoodLab/conch")` → use `encode_image` — [card](https://huggingface.co/MahmoodLab/CONCH) | 512 | CLIP | HF token + gated access + `pip install conch` |
+| `conch` | `conch.open_clip_custom.create_model_from_pretrained("conch_ViT-B-16", "hf_hub:MahmoodLab/conch")` → use `encode_image` — [repo](https://github.com/mahmoodlab/CONCH) | 512 | CLIP | HF token + gated access + `pip install conch` |
 | `gigapath` | `timm.create_model("hf_hub:prov-gigapath/prov-gigapath", …)` (tile encoder) — [card](https://huggingface.co/prov-gigapath/prov-gigapath) | 1536 | ImageNet | HF token + gated access |
 | `tenpercent_resnet18` | torchvision `resnet18` + the repo checkpoint, `fc=Identity` — [ozanciga/self-supervised-histopathology](https://github.com/ozanciga/self-supervised-histopathology) | 512 | ImageNet | local `tenpercent_resnet18.ckpt` from the repo (no HF) |
 
