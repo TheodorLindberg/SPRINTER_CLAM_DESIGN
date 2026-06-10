@@ -27,7 +27,7 @@ model = load_model(embedding_model_id)            # registry entry: load(pretrai
 slide = open_slide(wsi_path)                       # OME-TIFF→tifffile/zarr; NDPI→openslide
 for batch in batched(coords):
     imgs = [read_patch(slide, x, y, patch_size, level) for x, y in batch]
-    imgs = normalize(imgs, model.NORM)             # model's own mean/std (not cohort-fitted)
+    imgs = normalize(imgs, model.NORM)             # fixed, predetermined per model (never data-fitted)
     emb  = model(to_tensor(imgs))                  # (B, D)
     append(emb)
 save_h5(coords, embeddings, attrs)
@@ -35,6 +35,9 @@ save_h5(coords, embeddings, attrs)
 
 - Device: respect `CUDA_VISIBLE_DEVICES`; else pick the GPU with most free memory.
 - HuggingFace offline / SSL workarounds as needed on HPC.
+
+!!! note "Input normalization is fixed per model"
+    The image mean/std is a **predetermined constant** carried in each registry entry's `NORM`, never fitted on the cohort. Most models share ImageNet stats (`[0.485, 0.456, 0.406]` / `[0.229, 0.224, 0.225]`); CLIP-based models (e.g. CONCH) use their own. Keep it per-model so that one exception doesn't silently mis-normalize.
 
 ### Content-addressed cache
 
