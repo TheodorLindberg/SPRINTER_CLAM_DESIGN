@@ -6,6 +6,7 @@ A from-scratch rebuild should be able to target these pages and a test suite sho
 
 ## Pages
 
+- [Data Ingestion (input contract)](data-ingestion.md) — the normalized manifest the pipeline consumes.
 - [WSI Transformation](wsi-transformation.md) — registration outputs, outlines, the biopsy PCA axis.
 - [Dataset Preprocessing](preprocessing.md) — coords, embeddings, cache, bundle contracts.
 - [Model Training](training.md) — folds, run records, metrics.

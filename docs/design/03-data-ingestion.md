@@ -4,6 +4,8 @@ Normalizes a raw dataset into the standardized format the rest of the pipeline c
 
 > **In** raw dataset files (WSIs + source labels) · **Out** normalized scans, a [scan manifest](#scan-manifest-the-contract), a per-biopsy label CSV
 
+*Go deeper: [Specification — input contract](../spec/data-ingestion.md) (manifest + label schemas, invariants, acceptance criteria).*
+
 This stage sits **outside Snakemake**: every dataset arrives differently, so each user writes their own bridge to produce the normalized structure. We supply a ready-made ingester only for our own input dataset; others implement to the same contract.
 
 ---

@@ -42,6 +42,7 @@ nav:
       - Reports: design/11-reports.md
   - Specification:
       - spec/index.md
+      - Data Ingestion (input): spec/data-ingestion.md
       - WSI Transformation: spec/wsi-transformation.md
       - Dataset Preprocessing: spec/preprocessing.md
       - Model Training: spec/training.md
