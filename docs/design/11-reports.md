@@ -16,12 +16,12 @@ Every report is regenerated from artifacts the pipeline already produces — man
 
 ---
 
-## The experiment umbrella and the runs index
+## The model-experiment umbrella and the runs index
 
-Runs are **generated, not configured** — one [experiment config](../configs/training.md) fans out into many runs (seed sweep × optional HPO trials), so config count stays O(experiments), never O(models).
+Runs come from a [model experiment](../configs/model_experiment.md) (shared defaults + explicit runs, each fanning out over the seed sweep) and from [HPO](../configs/hpo.md) (a search that fans out into trials) — so config count stays O(experiments), never O(models).
 
 ```
-Experiment   (named umbrella, e.g. ki67_stain_comparison — may span many bundles)
+Model experiment   (named umbrella, e.g. ki67_stain_comparison — may span many bundles)
   └─ Run      (= bundle × architecture × target × fold_seed × model_seed [× hpo_trial])
 ```
 
@@ -37,7 +37,7 @@ results/                          # roots.results (base.yaml)
   reports/
     index.html                    # top-level, cross-experiment
     datasets/{dataset_id}.html    # distributions
-    patient_sets/{set}.html       # cohort composition (development / holdout)
+    cohorts/{cohort}.html         # role composition (development / holdout)
     splits/{seed_set}.html        # fold × cohort composition
   experiments/
     {experiment}/

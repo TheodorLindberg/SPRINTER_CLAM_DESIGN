@@ -19,5 +19,6 @@ Status: **working draft.**
 | [Reports](design/11-reports.md) | Interactive HTML reports, experiment/runs index, export |
 | [Configuration](design/10-configuration.md) | Draft Snakemake config files (base + per stage) |
 | [Open Questions & Decisions](design/09-open-questions.md) | Resolved defaults and undecided items |
+| [Appendix · Decisions](design/12-appendix.md) | Rationale + how the old pipeline worked |
 
 Detailed file-format specs (BEAM, embeddings, outlines) live under [formats/](formats/beam.md).

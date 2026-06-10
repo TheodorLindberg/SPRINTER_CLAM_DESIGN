@@ -41,7 +41,7 @@ This dissolves the either/or and keeps user-written ingesters flexible.
 
 The leakage risk is *derived state* — chiefly label normalization statistics, but also any quantity fitted on the data (distribution-derived thresholds, class weights).
 
-The clean rule: bundles carry **raw** labels and embeddings only. Anything fitted is computed at training time from the **training fold alone**. Combined with the `holdout` cohort being filtered out of every fold (it is only ever scored at evaluation), holdout shares no derived state with development by construction — converting the validation worry into a design invariant. See [Cohorts vs. splits](02-data-model.md#cohorts-vs-splits).
+The clean rule: bundles carry **raw** labels and embeddings only. Anything fitted is computed at training time from the **training fold alone**. Combined with `holdout` patients being filtered out of every fold (they are only ever scored at evaluation), holdout shares no derived state with development by construction — converting the validation worry into a design invariant. See [Cohorts, roles, and splits](02-data-model.md#cohorts-roles-and-splits).
 
 **Still open:** confirm that any embedding-time stain normalization is a fixed pretrained transform (not fitted on this cohort); if it were fitted, it would need the same treatment.
 

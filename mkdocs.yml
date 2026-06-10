@@ -38,14 +38,16 @@ nav:
       - 6 · Heatmap Generation: design/08-heatmaps.md
       - Reports: design/11-reports.md
       - Open Questions: design/09-open-questions.md
+      - Appendix · Decisions: design/12-appendix.md
       - Configuration:
           - Overview: design/10-configuration.md
           - Base: configs/base.md
-          - Patient sets: configs/patient_sets.md
+          - Cohorts: configs/cohorts.md
           - Split registry (seeds): configs/seeds.md
           - 2 · WSI Transformation: configs/wsi_transformation.md
           - 3 · Dataset Preprocessing: configs/preprocessing.md
-          - 4 · Model Training: configs/training.md
+          - 4 · Model Experiment: configs/model_experiment.md
+          - 4 · HPO: configs/hpo.md
           - 5 · Evaluation: configs/evaluation.md
           - 6 · Heatmap Generation: configs/heatmaps.md
           - Reports: configs/reports.md

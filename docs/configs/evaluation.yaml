@@ -1,9 +1,9 @@
 # Stage 5 · Evaluation — DRAFT
 # See design/07-evaluation.md.
 
-bundle: data/bundles/prostate_combined_v1__sHE__raw__conch
-model: runs/training/ki67_avg_clam      # checkpoints, folds, architecture
-cohort: holdout                         # holdout | development (CV test) | all
+bundle: prostate_combined_v1__sHE__raw__conch
+model: results/experiments/ki67_stain_comparison/sweep/he_lr1e4   # checkpoints, folds, arch
+subset: holdout                         # holdout | development (CV test) | all
 evaluation_tag: holdout_v1              # readable run name
 
 attention: [raw, sigmoid, rank]         # which attention variants to write to BEAM

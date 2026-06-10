@@ -2,7 +2,7 @@
 # Two parts: (1) heavy per-scan work that is cached, (2) cheap bundle assembly.
 # See design/05-dataset-preprocessing.md.
 
-# --- (1) Heavy work — patch + embed, cached per scan. Independent of patient sets. ---
+# --- (1) Heavy work — patch + embed, cached per scan. Independent of cohorts. ---
 
 labels:
   derived:                        # extendable per dataset
@@ -28,13 +28,13 @@ embedding:
       stain_jitter: 0.1           # HED color jitter
     n_variants: 2                 # augmented embedded copies per patch
 
-# --- (2) Bundle assembly — gather a patient set into ONE bundle, tagged by cohort. ---
-# Cheap; run repeatedly for different stains/embeddings. The bundle contains every
-# bag of the set, each tagged development/holdout (from patient_sets.yaml). No folds
-# here — those are assigned at training time. Stages pick a cohort scope.
+# --- (2) Bundle assembly — a bundle is a PREPARED COHORT. ---
+# Cheap; run repeatedly for different stains/embeddings. The bundle materializes every
+# patient of the cohort, each bag tagged with its role development/holdout (from
+# cohorts.yaml). No folds here — those are assigned at training time. Stages pick a subset.
 
 bundle:
-  patient_set: prostate_combined_v1   # from patient_sets.yaml
+  cohort: prostate_combined_v1        # from cohorts.yaml — a bundle is this cohort, prepared
   stains: [HE]                        # which stain(s) this bundle carries
   embedding_model: example_embedder_v1
   source_variant: raw                 # raw for training/metrics

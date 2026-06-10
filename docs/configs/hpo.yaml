@@ -1,0 +1,24 @@
+# HPO — DRAFT
+# Separate from the model experiment. Defines a hyperparameter search over ONE bundle.
+# Outputs are SEGREGATED (results/experiments/{name}/hpo/) with their own index; keep
+# only the best, then run a seed sweep on them in a model_experiment.
+# Inherits roots from base.yaml. See design/06-model-training.md and design/11-reports.md.
+
+hpo: ki67_he_search
+bundle: prostate_combined_v1__sHE__raw__conch
+subset: development                # development | holdout | all
+target: ki67_avg
+seed_set: prostate_main
+
+architecture:
+  family: clam
+  type: attention_mil
+
+method: bayesian                   # grid | bayesian (Optuna / TPE)
+n_trials: 200
+space:
+  learning_rate: { low: 1.0e-5, high: 1.0e-3, log: true }
+  dropout:       { low: 0.1, high: 0.5 }
+
+keep_checkpoints: top_n            # all | top_n | none — HPO models are rarely revisited
+top_n: 3                           # promote best N → run a seed sweep on them

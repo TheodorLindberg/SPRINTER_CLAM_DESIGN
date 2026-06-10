@@ -55,26 +55,26 @@ Augmented variants are embedded and cached as **their own embedding sets** (the 
 
 ## Bundle preparation
 
-A **bundle** materializes one [patient set](../configs/patient_sets.md) for one `(stain · embedding model · source variant · patch config)`. It is the self-contained hand-off unit to the model stages. Assembly is cheap (mostly symlinks), so many bundles are built from the same cached embeddings.
+A **bundle is a prepared cohort**: it materializes one [cohort](../configs/cohorts.md) for one `(stain · embedding model · source variant · patch config)`. It is the self-contained hand-off unit to the model stages. Assembly is cheap (mostly symlinks), so many bundles are built from the same cached embeddings.
 
 A bundle folder contains:
 
-- A bundle manifest — one row per bag, with its `cohort` tag (`development` / `holdout`), patient/biopsy ids, and embedding path.
+- A bundle manifest — one row per bag, with its patient `role` (`development` / `holdout`), patient/biopsy ids, and embedding path.
 - A label CSV — **all** labels, regardless of the eventual target (absent for label-free evaluation bundles).
 - Symlinked or copied embedding (HDF5) and tissue (GeoJSON) files; patch coordinates as HDF5.
-- Metadata — patient set + frozen membership hash, embedding model, patch settings, source variant, **plus the entity-level metadata columns forwarded from the [scan manifest](03-data-ingestion.md#scan-manifest-the-contract)**.
+- Metadata — cohort + frozen membership hash, embedding model, patch settings, source variant, **plus the entity-level metadata columns forwarded from the [scan manifest](03-data-ingestion.md#scan-manifest-the-contract)**.
 
-### One bundle, cohorts as tags
+### One bundle, roles as tags
 
-The bundle contains **every** bag of the patient set; each is tagged with its cohort role from the patient set definition. There is **not** a separate bundle per cohort. Stages select a **cohort scope** — `development`, `holdout`, or `all` — rather than juggling a list of bundles. See [Data Model · Bundles and cohorts](02-data-model.md#bundles-and-cohorts).
+The bundle contains **every** patient of the cohort; each bag is tagged with its `role` from the cohort definition. There is **not** a separate bundle per role. Stages select a **subset** — `development`, `holdout`, or `all` — rather than juggling a list of bundles. See [Data Model · Bundles](02-data-model.md#bundles).
 
-A bundle is not training-specific: the same one can feed CV training (`development`), final holdout evaluation (`holdout`), or a final retrain (`all`). An external evaluation set is simply a different patient set with its own bundle, possibly without labels.
+A bundle is not training-specific: the same one can feed CV training (`development`), final holdout evaluation (`holdout`), or a final retrain (`all`). An external evaluation set is simply a different cohort with its own bundle, possibly without labels.
 
 !!! note "Folds are NOT generated here"
-    This is deliberate, to support the **seed sweep** (see [Model Training](06-model-training.md)). Folds are assigned at training time over the `development` cohort; the bundle carries only the cohort tag, not fold assignments.
+    This is deliberate, to support the **seed sweep** (see [Model Training](06-model-training.md)). Folds are assigned at training time over the `development` patients; the bundle carries only the role tag, not fold assignments.
 
 !!! warning "No fitted statistics in bundles"
-    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training fold only**, never at bundle-preparation time. Combined with the holdout cohort being filtered out of all folds, this keeps holdout strictly leakage-free. See [Open Questions](09-open-questions.md#patient-exclusion-leakage).
+    Bundles carry **raw** labels and embeddings only. Any *fitted* quantity — label normalization mean/std, distribution-derived thresholds, class weights — must be computed at training time from the **training fold only**, never at bundle-preparation time. Combined with holdout patients being filtered out of all folds, this keeps holdout strictly leakage-free. See [Open Questions](09-open-questions.md#patient-exclusion-leakage).
 
 ---
 

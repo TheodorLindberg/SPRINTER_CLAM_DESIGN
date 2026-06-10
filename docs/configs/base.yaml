@@ -12,8 +12,8 @@ roots:
   results:    results           # runs + reports
 
 registries:
-  patient_sets: configs/patient_sets.yaml
-  seeds:        configs/seeds.yaml
+  cohorts: configs/cohorts.yaml
+  seeds:   configs/seeds.yaml
 
 defaults:
   source_variant: raw           # training/metrics default

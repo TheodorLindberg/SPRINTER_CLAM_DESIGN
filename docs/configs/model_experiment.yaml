@@ -1,39 +1,30 @@
-# Stage 4 · Model Training — experiment definition — DRAFT
-# ONE experiment fans out into many runs (seed sweep × optional HPO). No per-run files.
+# Stage 4 · Model experiment — DRAFT
+# A model experiment shares config across many runs and fans each run out over the
+# seed sweep. Runs are explicit, named variations (a different bundle, or different
+# hyperparameters) — not auto-generated. HPO is a SEPARATE config (hpo.yaml).
 # Inherits roots from base.yaml. See design/06-model-training.md and design/11-reports.md.
 
-experiment: ki67_stain_comparison    # umbrella name; groups every run below
+model_experiment: ki67_stain_comparison   # umbrella name; groups every run below
 
-bundles:                             # may span multiple bundles (stains / embeddings)
-  - prostate_combined_v1__sHE__raw__conch
-  # - prostate_combined_v1__sKi67__raw__conch
+defaults:                            # shared by every run unless the run overrides it
+  subset: development                # development (CV) | holdout | all (final retrain)
+  target: ki67_avg
+  seed_set: prostate_main            # fold × model seed sweep (from seeds.yaml)
+  architecture:
+    family: clam                     # regression | clam | non_clam
+    type: attention_mil
+    params: { hidden_dims: [512, 256], n_layers: 2, dropout: 0.25 }
+  hyperparameters:
+    learning_rate: 1.0e-4
+    weight_decay: 1.0e-5
+    dropout: 0.25
+    epochs: 100
+  label_balancing: { enabled: true, strategy: bins, n_bins: 4 }
+  use_augmented_embeddings: true     # sample augmented sets produced in preprocessing
 
-cohort: development                  # development (CV) | all (final retrain, after holdout)
-target: ki67_avg
-seed_set: prostate_main              # fold × model seed sweep (from seeds.yaml)
+runs:                                # each inherits defaults + a run_id; overrides a few keys
+  - { run_id: he_lr1e4,   bundle: prostate_combined_v1__sHE__raw__conch }
+  - { run_id: he_lr1e3,   bundle: prostate_combined_v1__sHE__raw__conch, hyperparameters: { learning_rate: 1.0e-3 } }
+  - { run_id: ki67_lr1e4, bundle: prostate_combined_v1__sKi67__raw__conch }
 
-architecture:
-  family: clam                       # regression | clam | non_clam
-  type: attention_mil
-  params: { hidden_dims: [512, 256], n_layers: 2, dropout: 0.25 }
-
-hyperparameters:                     # used when hpo.enabled = false
-  learning_rate: 1.0e-4
-  weight_decay: 1.0e-5
-  dropout: 0.25
-  epochs: 100
-
-label_balancing: { enabled: true, strategy: bins, n_bins: 4 }
-use_augmented_embeddings: true       # sample augmented sets produced in preprocessing
-
-hpo:
-  enabled: false
-  method: bayesian                   # grid | bayesian (Optuna / TPE)
-  n_trials: 200
-  space:
-    learning_rate: { low: 1.0e-5, high: 1.0e-3, log: true }
-    dropout:       { low: 0.1, high: 0.5 }
-  # HPO models are segregated under results/experiments/{exp}/hpo/ with their own
-  # index; keep only the best, then run a seed sweep on them. See reports.yaml.
-  keep_checkpoints: top_n            # all | top_n | none
-  top_n: 3
+# The bundle implies the cohort; seed_set must reference the same cohort (validated).

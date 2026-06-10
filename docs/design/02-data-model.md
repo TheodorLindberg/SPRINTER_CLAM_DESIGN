@@ -18,10 +18,10 @@ erDiagram
 
 | Entity | Definition |
 |---|---|
-| **Dataset** | A collection of patients, biopsies, scans, and labels from one source. Has an explicit version. |
+| **Dataset** | The patients, biopsies, scans, and labels from one **source**. The `dataset_id` names the source and may carry a version. |
 | **Patient** | A biological individual, identified globally by `(dataset_id, patient_id)`. The unit splits are computed over. |
-| **Patient set** | A named, possibly multi-dataset collection of patients. Splits and bundles derive from it; see [Cohorts vs. splits](#cohorts-vs-splits). |
-| **Cohort** | A role partition of a patient set — `development` or `holdout`. Not the same as a fold split. |
+| **Cohort** | A named, possibly multi-dataset **group of patients**. Within a cohort each patient has a **role** (`development` / `holdout`). Splits and bundles derive from it; see [Cohorts, roles, and splits](#cohorts-roles-and-splits). |
+| **Role** | A patient's place in a cohort: `development` (cross-validation) or `holdout` (locked test). |
 | **Biopsy** | A tissue sample from one patient. The unit labels and bags are keyed on. |
 | **Scan** | A digitized WSI from one biopsy and one stain. Any OpenSlide-supported format. |
 | **Stain** | The staining method applied to a scan (e.g. H&E and IHC stains). |
@@ -32,35 +32,35 @@ erDiagram
 
 ---
 
-## Cohorts vs. splits
+## Cohorts, roles, and splits
 
-Two levels, two vocabularies — so the word "test" is never overloaded.
+Three levels, three vocabularies — so the word "test" is never overloaded.
 
-**Cohort** — a *patient-level* partition of a patient set. Exactly two roles:
+**Cohort** — a named **group of patients** (may pool multiple dataset sources). The thing you reason about: "the prostate cohort."
 
-- **`development`** — patients used for model development; all cross-validation happens here.
-- **`holdout`** — a small but important set of patients locked away from all development, evaluated **once** at the end (aka "lockbox").
+**Role** — within a cohort, each patient is one of:
 
-**Split** — *fold-level* roles assigned **within the development cohort** by the seed config:
+- **`development`** — used for model development; all cross-validation happens here.
+- **`holdout`** — a small but important set locked away from all development, evaluated **once** at the end (aka "lockbox").
 
-- **`train`** / **`val`** / **`test`** — per fold.
+**Split** — *fold-level* assignments **among the development patients**, by the seed config: **`train`** / **`val`** / **`test`** per fold.
 
 !!! tip "The rule that kills the ambiguity"
-    `train` / `val` / `test` only ever describe **folds inside the development cohort**. The reserved patients are only ever the **holdout cohort** — never called "test". So a **CV test score** (cross-validated, development) and a **holdout score** (the locked cohort) are unambiguous and clearly distinct.
+    `train` / `val` / `test` only ever describe **folds among development patients**. The reserved patients only ever have the **holdout** role — never called "test". So a **CV test score** (cross-validated, development) and a **holdout score** are unambiguous and clearly distinct.
 
-### Bundles and cohorts
+### Bundles
 
-A **bundle** materializes a patient set for one `(stain · embedding model · source variant · patch config)`. It contains **every** bag of the set, each tagged with its `cohort` role. **Cohort is a column in the bundle manifest, not a separate bundle** — there is one bundle, not one per cohort.
+A **bundle is a prepared cohort**: it materializes the cohort for one `(stain · embedding model · source variant · patch config)`, with **every** patient's bags present and tagged by `role`. **Role is a column in the bundle manifest, not a separate bundle** — one cohort → many bundles (per stain/embedding/etc.), each containing all roles.
 
-Stages then pick a **cohort scope** (an enum, never a list):
+Stages then pick a **subset** (an enum, never a list):
 
-| Scope | Used by | Meaning |
+| `subset` | Used by | Meaning |
 |---|---|---|
-| `development` | Training (CV) | bags tagged `development`; folds (train/val/test) assigned within |
-| `holdout` | Evaluation | the locked cohort; scored once |
+| `development` | Training (CV) | bags with role `development`; folds (train/val/test) assigned within |
+| `holdout` | Evaluation | the locked patients; scored once |
 | `all` | Final retrain | `development` ∪ `holdout`; only after holdout is consumed |
 
-So "train on the union" is `cohort: all` — a single scope value, **not** an assembled list of cohorts. Because folds are assigned to *patients* in the set, every stain/embedding bundle built from the same set inherits the **same fold split**.
+So "train on the union" is `subset: all` — a single value, **not** an assembled list. Because folds are assigned to *patients*, every stain/embedding bundle built from the same cohort inherits the **same fold split**.
 
 ### Leakage guarantees
 
@@ -83,22 +83,22 @@ The source variant is a first-class identifier component, not folded into the pa
 
 ## Identifiers
 
-All identifiers are stable and recorded in manifests, never inferred from filenames alone.
+All identifiers are stable and recorded in manifests, never inferred from filenames alone. `dataset_id` names the dataset **source** (optionally versioned), which is what lets a cohort pool patients from several sources — see the [appendix](12-appendix.md#how-dataset_id-is-meant-to-work).
 
 | Identifier | Notes |
 |---|---|
-| `dataset_id` | Explicit version, never `latest` |
+| `dataset_id` | Names the dataset **source**, optionally with a version (e.g. `sahlgrenska_2018`). Never `latest`. |
 | `patient_id` | Unique within dataset |
 | `biopsy_id` | Unique within patient |
 | `scan_id` | One per (biopsy, stain) |
 | `patch_config_id` | Patch size, resolution, overlap/stride |
 | `source_variant` | `raw` / `rigid` / `elastic` |
 | `embedding_model_id` | Model name + version |
-| `patient_set_id` | Named patient set (e.g. `prostate_combined_v1`) |
-| `cohort` | `development` / `holdout` — a per-bag tag, not an id |
-| `bundle_id` | `{patient_set_id}__s{stains}__patch-{patch_config_id}__src-{source_variant}__emb-{embedding_model_id}` |
-| `experiment_id` | Umbrella grouping name; groups runs across bundles (e.g. `ki67_stain_comparison`) |
-| `run_id` | One training run; generated from the experiment fan-out, carries tags |
+| `cohort_id` | Named cohort (e.g. `prostate_combined_v1`) |
+| `role` | `development` / `holdout` — a per-patient tag, not an id |
+| `bundle_id` | `{cohort_id}__s{stains}__patch-{patch_config_id}__src-{source_variant}__emb-{embedding_model_id}` |
+| `model_experiment_id` | Umbrella grouping name; groups runs across bundles (e.g. `ki67_stain_comparison`) |
+| `run_id` | One run within a model experiment; carries tags |
 | `bag_id` | Fully qualified — see below |
 
 ### Bag naming
