@@ -6,6 +6,7 @@ roots:
   processed:  data/processed    # cached embeddings, outlines, patches
   bundles:    data/bundles      # prepared cohorts (bundles)
   results:    results           # runs + reports
+  debug:      results/debug     # QC / method-comparison outputs; never read downstream
 
 registries:
   cohorts: configs/cohorts.yaml

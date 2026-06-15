@@ -12,15 +12,15 @@ Contracts for [Stage 2](../design/04-wsi-transformation.md). Overview · **Speci
 
 Outlines and the QC overlay are produced **within the registration step** (one rule). The tissue source is configurable — `tissue_method: valis` (default; the same masks VALIS registers on) or `hsv_otsu`.
 
-!!! note "Comparing methods during development"
-    Outlines are written to a **method-tagged path** so both can coexist: `…/outlines/{scan}__{variant}__{tissue_method}.geojson`. With `emit_comparison: true`, the step also emits the *other* method's outline and overlays **both** in the QC PNG. **Only the configured `tissue_method` is authoritative** — downstream stages read that one; the comparison output is for QC only.
+!!! note "Method comparison is debug-only"
+    The pipeline produces **one** authoritative outline per `(stain, variant)`, from the configured `tissue_method`, at a method-agnostic path (`…/outlines/{scan}__{variant}.geojson`). With `debug_compare_methods: true`, the step additionally runs the *other* method and writes its outline plus a side-by-side QC overlay to the **debug output folder** (`roots.debug`); these are never read by any downstream stage.
 
 | Artifact | Form | Notes |
 |---|---|---|
 | Registered image | OME-TIFF | `rigid`, `elastic`; pyramidal, tiled, LZW |
 | Rigid transform | `transform.json` | affine 3×3 (raw → rigid) + the reference-stain frame size |
 | Elastic transform | displacement field ref + affine | non-rigid warp; stored as a VALIS/registration handle + the rigid prefix |
-| Tissue outline | polygon array (+ GeoJSON) | per stain per variant; from VALIS tissue; see [Outlines](../formats/outlines.md) |
+| Tissue outline | polygon array (+ GeoJSON) | per stain per variant; from the configured `tissue_method`, at a method-agnostic path; see [Outlines](../formats/outlines.md) |
 | Cross-stain intersection | polygon array | per scan; from VALIS's `elastic` overlap mask |
 | **QC overlay** | low-res **PNG** | per scan (outline on tissue) + one HE thumbnail with all outlines + the intersection |
 | **Biopsy axis** | see below | per scan; the PCA longitudinal line |
@@ -46,6 +46,7 @@ biopsy_axis
 - The cross-stain intersection is a subset of every stain's `elastic` outline for that scan.
 - The biopsy axis `direction` is a unit vector; `quartile_cuts` are monotonic and split `[t_min, t_max]` into four equal-length segments.
 - Outline vertices are in their variant's pixel frame; nothing is implied by filenames.
+- Exactly one outline exists per `(stain, variant)` in the authoritative tree; its path does not encode the tissue method, and no downstream stage selects between methods (comparison outputs live only under `roots.debug`).
 
 ## Acceptance criteria
 

@@ -26,11 +26,11 @@ Two interchangeable tissue sources, behind one interface:
 
 Both share the same tail: get the tissue mask, warp it into the target frame (rigid / elastic / inverse for raw), trace contours, simplify, scale to level-0, and store as a polygon array (one outline per `(stain, variant)`; multiple components become a list). The **cross-stain intersection** comes from VALIS's overlap mask (or a shapely intersection of the `hsv_otsu` outlines).
 
-When `emit_comparison` is on, both methods are written to **method-tagged paths** (`…/outlines/{scan}__{variant}__{method}.geojson`) so they coexist; downstream stages read only the configured `tissue_method`.
+Only the configured `tissue_method` is written into the main tree, at a method-agnostic path (`…/outlines/{scan}__{variant}.geojson`) that downstream stages read without ever branching on the method. When `debug_compare_methods` is on, the other method is additionally run and its outline written under the **debug folder** (`roots.debug`) alongside the comparison overlay; nothing downstream reads it.
 
 ## QC overlay (low-res PNG)
 
-Per scan, draw the outline(s) on a thumbnail. With comparison on, overlay **both methods in different colours** so they can be judged side by side. Also emit one HE thumbnail with **all stains' outlines + the intersection** overlaid, to verify cross-stain alignment at a glance.
+Per scan, draw the configured outline on a thumbnail (standard QC). Also emit one HE thumbnail with **all stains' outlines + the intersection** overlaid, to verify cross-stain alignment at a glance. When `debug_compare_methods` is on, a separate overlay with **both methods in different colours** is written to `roots.debug` for side-by-side judgement.
 
 ## Biopsy axis (PCA line)
 

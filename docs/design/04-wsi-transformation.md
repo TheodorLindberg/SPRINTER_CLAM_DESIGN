@@ -26,10 +26,10 @@ A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned ac
 
 ## Tissue outlines
 
-Outlines are produced as part of the registration step, not as a separate masking stage. The tissue source is configurable: by default the segmentation built into VALIS (the registration toolkit — it reuses the very masks it registers on), or an `hsv_otsu` mask. Outlines are stored as polygon vertex arrays (the pipeline's source of truth), with a GeoJSON export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
+Outlines are produced as part of the registration step, not as a separate masking stage. A single tissue method is configured per run — by default the segmentation built into VALIS (it reuses the very masks it registers on), or an `hsv_otsu` mask — and the pipeline produces **one outline per (stain, variant)** from it. Downstream stages consume that single outline and never choose between methods. Outlines are stored as polygon vertex arrays (the pipeline's source of truth), with a GeoJSON export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
 
-!!! note "Comparing tissue methods (development)"
-    Both methods can be emitted to method-tagged paths and overlaid in the QC PNG, so they can be compared early on; only the configured method feeds downstream stages.
+!!! note "Method comparison is debug-only"
+    To sanity-check segmentation during development, the alternative method can also be run; its outline and a side-by-side QC overlay are written to a separate **debug output folder** and are never read by any downstream stage. The main pipeline still produces and consumes exactly one outline per (stain, variant), so no stage carries logic to pick between methods.
 
 - **Raw outline** — per stain.
 - **Rigid-registered outline** — per stain.
