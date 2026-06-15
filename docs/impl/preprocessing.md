@@ -27,7 +27,7 @@ write_text("…/membership_hash", sha1(canonical(rows)))
 build_cohort_report(rows, labels)             # → reports/cohorts/{cohort}.html
 ```
 
-- The **frozen membership + hash** is what [`assemble_bundle`](#bundle-assembly) and [`generate_folds`](training.md#fold-generation) read; a hash change flags dependents stale.
+- The **frozen membership + hash** is what [`assemble_bundle`](#bundle-assembly) and [`generate_folds`](training.md#fold-generation-the-generate_folds-rule) read; a hash change flags dependents stale.
 - The report reuses the report toolkit (Plotly + `reports.css`): composition by dataset × role, label histograms per role, and provenance.
 
 ## Patch generation

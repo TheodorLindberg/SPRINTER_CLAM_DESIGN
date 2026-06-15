@@ -1,63 +1,54 @@
 # Open Questions & Decisions
 
-Working notes for discussion with the team. Items marked **Recommended default** have a proposed resolution with rationale; items marked **Open** are genuinely undecided.
+Working notes for the team. Most of the early design questions are now settled — those are recorded under [Resolved decisions](#resolved-decisions) below, each with a pointer to the fuller rationale in the [Appendix](12-appendix.md). The few that are still genuinely undecided are kept at the top.
 
 ---
 
-## Embedding reuse strategy
+## Still open
 
-**Recommended default: content-addressed cache.**
+### Holdout ensembling policy
 
-Three options were considered:
+Holdout patients are scored by **all** fold checkpoints. The current default is the **mean** prediction; we still need to confirm this against the alternatives — median, best-fold, or keeping each per-checkpoint prediction separately.
 
-| Approach | How | Verdict |
-|---|---|---|
-| **Content-addressed cache** | Key each embedding by coordinates + patch size + resolution + embedding model + source variant; embed only cache misses. | **Chosen.** Robust across the full overlap × stain × model × variant combinatorics; reuse survives outline cropping, edge handling, and shifted grid origins. |
-| Canonical fine grid + decimation | Embed once at the finest overlap ever needed; derive coarser sets by subsetting. | Reasonable fallback if we'd rather avoid a cache layer, but pays the full dense cost upfront and fixes the finest grid in advance. |
-| Fixed global grid origin | Force all grids for a scan to share one origin/step so coarser grids are subsets by construction. | Cheapest, but brittle — anything perturbing the origin silently invalidates reuse. |
+### Combining input sources in CLAM training preparation
 
-!!! tip "Refinement"
-    Include **patch resolution / pyramid level** in the cache key, not just coordinates and size — the same coordinates at a different magnification give different pixel content and must not collide.
+How to merge different input data sources when assembling CLAM training inputs is undecided.
 
-**Still open:** whether to invest in the cache layer now or start with decimation and migrate later.
+### Exact bundle schema
+
+The bundle manifest schema — shared by training and evaluation — must be pinned down before implementation. It is deferred on purpose while the surrounding stage contracts settle.
 
 ---
 
-## Holdout leakage {#patient-exclusion-leakage}
+## Resolved decisions
 
-**Recommended default: no fitted statistics in bundles + holdout filtered from all folds.**
+A brief record of what's been decided and why. The reasoning behind each is in the [Appendix](12-appendix.md).
 
-The leakage risk is *derived state* — chiefly label normalization statistics, but also any quantity fitted on the data (distribution-derived thresholds, class weights).
+### Embedding reuse strategy {#embedding-reuse-strategy}
 
-The clean rule: bundles carry **raw** labels and embeddings only. Anything fitted is computed at training time from the **training fold alone**. Combined with `holdout` patients being filtered out of every fold (they are only ever scored at evaluation), holdout shares no derived state with development by construction — converting the validation worry into a design invariant. See [Cohorts, roles, and splits](02-data-model.md#cohorts-roles-and-splits).
+**Resolved: a content-addressed cache.** Each embedding is keyed by what it was computed from — coordinates, patch size, resolution, embedding model, source variant — and only cache misses are computed. This is robust across the full overlap × stain × model × variant space, and reuse survives outline cropping, edge handling, and shifted grid origins. Two alternatives were considered and rejected:
 
-**Still open:** confirm that any embedding-time stain normalization is a fixed pretrained transform (not fitted on this cohort); if it were fitted, it would need the same treatment.
+| Alternative | Why not |
+|---|---|
+| Canonical fine grid + decimation | Embed once at the finest overlap ever needed, then subset for coarser grids. A reasonable fallback, but it pays the full dense cost upfront and fixes the finest grid in advance. |
+| Fixed global grid origin | Force every grid to share one origin/step so coarser grids are subsets by construction. Cheapest, but brittle — anything that perturbs the origin silently breaks reuse. |
 
----
+### Holdout leakage {#patient-exclusion-leakage}
 
-## Metadata file scope {#metadata-file-scope}
+**Resolved: no fitted statistics in bundles, and holdout filtered out of every fold.** Bundles carry raw labels and embeddings only; anything *fitted* (label normalization, distribution-derived thresholds, class weights) is computed at training time from the training fold alone. With holdout patients kept out of every fold, holdout shares no derived state with development by construction. See [Cohorts, roles, and splits](02-data-model.md#cohorts-roles-and-splits).
 
-**Decided: nested `metadata:` per level in the YAML/JSON scan manifest, forwarded into the bundle and BEAM grouped by level.**
+*One thing left to verify:* that any embedding-time stain normalization is a fixed pretrained transform, not something fitted on this cohort — if it were fitted, it would need the same treatment.
 
-The scan manifest is hierarchical (`dataset → patient → biopsy → scan`), so metadata sits as a `metadata:` block at whichever level it describes — written once, no repetition. Preprocessing forwards it downstream **keeping the level tag**, and the [BEAM](../formats/beam.md) `/metadata` stores it grouped `dataset/ patient/ biopsy/ scan/`, so a reader always knows what a value describes. No separate metadata store, and the nested form handles irregular/structured metadata directly. See [Data Ingestion · Scan manifest](03-data-ingestion.md#the-scan-manifest).
+### Metadata scope {#metadata-file-scope}
 
----
+**Resolved: nested `metadata:` per level in the scan manifest**, forwarded into the bundle and BEAM grouped by level. The manifest is hierarchical (dataset → patient → biopsy → scan), so each value sits at the level it describes, is written once, and keeps its level tag all the way to the [BEAM](../formats/beam.md) `/metadata`. No separate metadata store. See [Data Ingestion · Scan manifest](03-data-ingestion.md#the-scan-manifest).
 
-## Stains per bundle
+### Stains per bundle {#stains-per-bundle}
 
-**Decided: one stain per bundle (one model per stain) for now.** A biopsy's HE / Ki67 / PSA scans become separate bundles, each feeding its own model, so evaluation's per-bag → per-biopsy step is 1:1.
+**Resolved: one stain per bundle (one model per stain) for now.** A biopsy's HE / Ki67 / PSA scans become separate bundles, each feeding its own model, so evaluation's per-bag → per-biopsy step stays 1:1.
 
-### Future: multi-stain, multi-target models
+A future **multi-stain, multi-target** model — for example, one model that takes both Ki67 and PSA embeddings for a biopsy and predicts both scores — is designed to *extend* these contracts rather than change them (single-stain stays the one-element case):
 
-Example: a single model that takes **both Ki67 and PSA** patch embeddings for a biopsy and predicts **both** scores. To support this, the current contracts extend rather than change (single-stain stays the one-element case):
-
-- **Bundle** — allow `stains: [Ki67, PSA]`; the bundle then carries one bag per `(biopsy, stain)`, already distinguishable via `bag_id`'s stain field.
-- **Architecture** — one MIL branch per stain (each pools its own bag), fused at a head with **per-target outputs** (multi-task: one head per score). No spatial alignment needed — each stain is pooled independently and fused at the prediction level — so it stays compatible with raw-frame training.
-- **Config** — `target` becomes a set (e.g. `{ki67_score, psa_score}`); balancing and metrics are computed per target.
-- **Evaluation / BEAM** — this is where the per-bag → per-biopsy step becomes a **real aggregation**: attention stored per stain (`attention/Ki67`, `attention/PSA`), predictions per target.
-
-## Genuinely open
-
-- **Holdout ensembling policy.** Holdout patients are scored by all fold checkpoints; default is the **mean** prediction. Confirm vs. alternatives (median, best-fold, per-checkpoint kept).
-- **Combining input data sources in CLAM training preparation.** How to merge different input data sources when assembling CLAM training inputs is undecided.
-- **Exact bundle schema.** The schema shared by training and evaluation must be defined before implementation; deferred while the stage contracts settle.
+- **Bundle** — allow `stains: [Ki67, PSA]`; the bundle then carries one bag per `(biopsy, stain)`, already distinguishable via the stain field of `bag_id`.
+- **Architecture** — one MIL branch per stain, each pooling its own bag, fused at a head with per-target outputs. Because each stain is pooled independently, no spatial alignment is needed and raw-frame training still holds.
+- **Config & evaluation** — `target` becomes a set; balancing, metrics, attention, and predictions are all tracked per target, which turns the per-bag → per-biopsy step into a real aggregation.

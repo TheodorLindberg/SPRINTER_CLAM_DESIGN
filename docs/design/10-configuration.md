@@ -24,11 +24,14 @@ The full files are shown on their own pages (under **Configuration** in the side
 
 ## Cross-cutting notes
 
-- **`base.yaml` holds the roots.** Output paths, data roots, and registry locations live there once; stage configs are layered on top (base first, stage overrides win) and reference the roots instead of hard-coding paths.
-- **Cohorts are the root.** `cohorts.yaml` defines named, possibly multi-dataset patient groups; within each, patients have a **role** (`development` / `holdout`). Both splits and bundles derive from a cohort.
-- **Split registry references a cohort, not a dataset.** `seeds.yaml` holds named seed/split configs under `seed_sets`; each names a `cohort`, and folds are computed over its development patients. A change in the cohort's frozen membership raises a stale-splits warning.
-- **A bundle is a prepared cohort.** `preprocessing.yaml` assembles one bundle per cohort × stain × embedding × variant; every patient is present, each bag tagged with its `role`. Stages pick a **subset** (`development` / `holdout` / `all`) — the union is `all`, never a hand-built list.
-- **`model_experiment.yaml` is shared defaults + explicit runs**, each fanning out over the seed sweep — config count stays O(experiments), not O(models). HPO is a **separate** config with segregated outputs. See [Reports](11-reports.md).
-- **Augmentation lives in preprocessing**, not training — it runs the embedding foundation model on augmented patches and caches each variant as its own embedding set. Training only chooses whether to sample those sets.
-- **Balancing** lives in `model_experiment.yaml` and applies per fold from the training split only.
-- A single merged `config.yaml` with per-stage sections is a possible alternative if the per-file split proves cumbersome — left open.
+A few ideas tie the configs together:
+
+- **`base.yaml` holds the roots.** Output paths, data roots, and registry locations live there once. Stage configs are layered on top (base loads first, the stage's values win) and refer to the roots instead of hard-coding paths — so changing an output location is a single edit.
+- **The cohort is the root entity.** `cohorts.yaml` defines named, possibly multi-dataset patient groups, and within each, every patient has a role (`development` or `holdout`). Both splits and bundles are derived from a cohort.
+- **The split registry references a cohort, not a dataset.** `seeds.yaml` holds named seed/split configs under `seed_sets`; each names a cohort, and folds are computed over its development patients. If the cohort's frozen membership changes, the pipeline raises a stale-splits warning.
+- **A bundle is a prepared cohort.** `preprocessing.yaml` assembles one bundle per cohort × stain × embedding × variant, with every patient present and each bag tagged with its role. Stages then pick a subset (`development`, `holdout`, or `all`) — the union is `all`, never a hand-built list.
+- **`model_experiment.yaml` is shared defaults plus explicit runs**, each fanning out over the seed sweep, so the config count stays proportional to experiments, not models. HPO is a separate config with its own segregated outputs. See [Reports](11-reports.md).
+- **Augmentation lives in preprocessing, not training.** It runs the embedding model on augmented patches and caches each variant as its own embedding set; training only chooses whether to sample those sets.
+- **Balancing** lives in `model_experiment.yaml` and is applied per fold, from the training split only.
+
+A single merged `config.yaml` with per-stage sections remains a possible alternative if the per-file split proves cumbersome.

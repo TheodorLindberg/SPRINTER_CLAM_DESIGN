@@ -44,7 +44,7 @@ aggregate_runs_parquet()
 5. Log per-epoch train/val metrics; evaluate the fold's `test` split.
 6. Save `fold_k` checkpoint + history.
 
-Emit a [run record](../spec/training.md#run-record-runjson) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
+Emit a [run record](../spec/training.md#run-record-runjson-one-per-run) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
 
 ### Augmented bags
 
