@@ -1,12 +1,12 @@
 # Stage 2 · WSI Transformation
 
-Raw scans carry arbitrary per-stain rotation and translation, so tissue does not align across stains. This stage corrects that through registration, and detects the tissue outlines patch generation will use.
+Each biopsy is scanned once per stain, and the scanner places every stain on the slide at a slightly different angle and position — so the same piece of tissue does not line up between, say, the H&E and the Ki67 image. This stage does two things: it lines the stains up with each other (**registration**), and it traces the outline of the tissue on each slide so later stages know where to look.
 
 > **In** normalized scans (via the manifest) · **Out** raw / rigid / elastic variants + transformation matrices, and tissue outlines
 
 *Go deeper: [Specification](../spec/wsi-transformation.md) · [Implementation](../impl/wsi-transformation.md).*
 
-It is kept as its own stage because registration is expensive and its outputs are reused across every downstream patch and embedding configuration.
+It is its own stage because registration is expensive, and its outputs are reused by every downstream patch and embedding configuration.
 
 ---
 
@@ -26,7 +26,7 @@ A rigid heatmap is effectively equivalent to a raw one, just coarsely aligned ac
 
 ## Tissue outlines
 
-Outlines are produced **in the registration step**, from a configurable tissue source — the segmentation built into **VALIS** (default; a WSI registration toolkit — it uses the same masks it registers on) or an `hsv_otsu` mask — not a separate masking stage. They are stored as **polygon vertex arrays** (the pipeline's source of truth), with a **GeoJSON** export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
+Outlines are produced as part of the registration step, not as a separate masking stage. The tissue source is configurable: by default the segmentation built into VALIS (the registration toolkit — it reuses the very masks it registers on), or an `hsv_otsu` mask. Outlines are stored as polygon vertex arrays (the pipeline's source of truth), with a GeoJSON export for TissUUmaps viewing. → [Outlines spec](../formats/outlines.md).
 
 !!! note "Comparing tissue methods (development)"
     Both methods can be emitted to method-tagged paths and overlaid in the QC PNG, so they can be compared early on; only the configured method feeds downstream stages.
@@ -34,7 +34,7 @@ Outlines are produced **in the registration step**, from a configurable tissue s
 - **Raw outline** — per stain.
 - **Rigid-registered outline** — per stain.
 - **Elastic-registered outline** — per stain.
-- **Cross-stain intersection outline** — the region with tissue present in *every* stain. It comes only from the overlapping elastic registration and is saved **per scan** (rather than per patient) to keep complexity down.
+- **Cross-stain intersection outline** — the region where tissue is present in *every* stain. It comes only from the elastic registration (the one alignment tight enough to overlap stains meaningfully) and is saved per scan rather than per patient, to keep things simple.
 
 ---
 
