@@ -2,9 +2,11 @@
 
 ## Purpose
 
-A pipeline for preparing histology **whole-slide image (WSI)** datasets, generating patch embeddings, training **multiple-instance learning (MIL)** models, evaluating them, and producing reports and heatmaps.
+This project automates the path from a stack of digitised microscope slides to a model that scores them — together with the reports and visual overlays that let you trust and inspect what that model does.
 
-The goal is **reproducible training and evaluation** across multiple datasets, stains, registration methods, patching strategies, embedding models, and label sources.
+In pipeline terms: it prepares histology **whole-slide image (WSI)** datasets, cuts them into patches and embeds them, trains **multiple-instance learning (MIL)** models, evaluates them, and produces reports and heatmaps.
+
+The reason for building it as a pipeline is **reproducibility**. The same datasets, stains, registration methods, patching strategies, embedding models, and label sources can be combined and re-run, and you get the same results each time.
 
 !!! tip "Terms & abbreviations"
     Project terms (cohort, bundle, bag, source variant, …) are introduced where they first appear; every term and abbreviation is also collected in the [Glossary](glossary.md).
