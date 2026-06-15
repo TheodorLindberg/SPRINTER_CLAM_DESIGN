@@ -18,6 +18,9 @@ Which checkpoint predicts a given patient depends on the `subset`:
 
 This routing is what produces an honest CV-test score vs. a holdout score.
 
+!!! note "Inference is organised per-model, not per-patient"
+    The routing above says *which* checkpoint scores *which* patient; it does **not** imply scoring one patient at a time. Each checkpoint should be loaded **once** and all the patients it is responsible for batched through it (for `development`, the fold's test patients; for `holdout`, every patient). Iterating patient-by-patient and reloading the model inside that loop is O(patients × checkpoints) disk loads and becomes badly I/O-bound — the failure mode to avoid. This is a performance guideline, not a contract: any order that respects the routing table and the invariants below is valid.
+
 ## What a BEAM contains (generation contract)
 
 | Field | How it is produced |

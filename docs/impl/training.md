@@ -1,48 +1,32 @@
 # Impl · Model Training
 
-Recipe for [Stage 4](../design/06-model-training.md). [Overview](../design/06-model-training.md) · [Specification](../spec/training.md) · **Implementation**.
+Implementation notes for [Stage 4](../design/06-model-training.md). [Overview](../design/06-model-training.md) · [Specification](../spec/training.md) · **Implementation**.
 
 Reference libraries: **scikit-learn** (stratified folds), **PyTorch** (training), **Optuna** (HPO), **pandas/pyarrow** (run records).
+
+> Design-level notes, not a prescriptive recipe. The contract is the [training spec](../spec/training.md).
 
 ## Fold generation (the `generate_folds` rule)
 
 Folds are generated **once**, by their own rule, and written to a CSV. Training **reads** that CSV — it never re-derives a split from a seed, so every model in the sweep trains on byte-identical folds.
 
-```python
-# generate_folds — runs once per (seed_set, target, fold_seed); writes folds.csv
-dev = [p for p in cohort.patients if p.role == "development"]
-strata = bin(target_value(p) for p in dev)            # quantile bins for regression
-skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=fold_seed)
-folds = [test_idx for _, test_idx in skf.split(dev, strata)]
-# per fold i: test = folds[i], val = folds[(i+1) % k], train = the rest
-write_csv(f"folds/{seed_set}/{target}/{fold_seed}.csv", folds)   # patient → fold/split
-```
-
-- Patient-level (all bags of a patient share a fold). Holdout patients are never in `dev`.
-- Falls back to a shuffled split if a class has fewer than `n_folds` patients.
+- Split the **development** patients with a stratified k-fold (quantile bins for regression targets), seeded by `fold_seed`. For fold *i*: `test` = fold *i*, `val` = the next fold, `train` = the rest.
+- Patient-level — all bags of a patient share a fold. Holdout patients are never in the development set.
+- Fall back to a shuffled split if a class has fewer than `n_folds` patients.
 
 ## Seed sweep
 
-The fold CSV is **passed into** `train_run` — not a `fold_seed` for it to regenerate.
-
-```python
-for fold_seed in seed_set.fold_seeds:
-    folds = read_csv(f"folds/{seed_set}/{target}/{fold_seed}.csv")   # pre-generated
-    for model_seed in seed_set.model_seeds:
-        run = train_run(bundle, target, architecture, hyperparameters,
-                        folds=folds, model_seed=model_seed)          # folds in, not regenerated
-        write_run_record(run)
-aggregate_runs_parquet()
-```
+The fold CSV is **passed into** `train_run`, not a `fold_seed` for it to regenerate. For each `fold_seed`, read its pre-generated fold CSV; for each `model_seed`, train a run with those folds and write a [run record](../spec/training.md#run-record-runjson-one-per-run). All records aggregate into `runs.parquet`.
 
 ## Training a run
 
-`train_run(..., folds, model_seed)` takes the fold assignment as input. For each fold in it:
-2. If `target_normalization` (default on), **fit the target mean/std on the train fold only** and store it; if off, train in raw label units. Class weights / bin balancing are always from the train split.
-3. MIL forward: bag of embeddings → pooling → prediction.
-4. Loss + optimizer per family (see below). Early-stop on the val metric.
-5. Log per-epoch train/val metrics; evaluate the fold's `test` split.
-6. Save `fold_k` checkpoint + history.
+A run takes the fold assignment as input. For each fold:
+
+1. If `target_normalization` (default on), **fit the target mean/std on the train fold only** and store it; if off, train in raw label units. Class weights / bin balancing are always from the train split.
+2. MIL forward: bag of embeddings → pooling → prediction.
+3. Loss + optimizer per family (see below); early-stop on the val metric.
+4. Log per-epoch train/val metrics; evaluate the fold's `test` split.
+5. Save the fold checkpoint + history.
 
 Emit a [run record](../spec/training.md#run-record-runjson-one-per-run) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
 
@@ -58,23 +42,13 @@ Computed per fold from the train split: class weights or weighted/over/under-sam
 
 `family → type → params`:
 
-- **`clam`** — **classification** MIL (attention). Real knobs: `model_type` (`clam_sb`/`clam_mb`), `model_size`, `bag_loss: ce`, `inst_loss: svm`, `bag_weight`, instance-cluster `B`, `drop_out`; optimizer `adam`. The adapter feeds bundle bags **read from the manifest** (no filename/symlink hacks) plus the fold assignment, and exposes attention for [evaluation](../design/07-evaluation.md).
+- **`clam`** — **classification** MIL (attention). Real knobs: `model_type` (`clam_sb` / `clam_mb`), `model_size`, `bag_loss`, `inst_loss`, `bag_weight`, instance-cluster `B`, dropout. The adapter feeds bundle bags **read from the manifest** (no filename/symlink hacks) plus the fold assignment, and exposes attention for [evaluation](../design/07-evaluation.md).
 - **`non_clam`** — attention-free mean-pool MIL baseline.
-- **`regression`** — a continuous-target MIL head (Huber/MSE, AdamW). **New** — CLAM is classification-only, so a regression target either uses this head or is binned into classes for a CLAM run.
+- **`regression`** — a continuous-target MIL head (Huber/MSE). **New** — CLAM is classification-only, so a regression target either uses this head or is binned into classes for a CLAM run.
 
 !!! note "Proven vs. new"
-    The CLAM classification path and the embedding/bag inputs are proven in the reference code. The **regression head**, **AdamW**, and **Optuna HPO** below are new additions in this design — feasible, but not yet exercised end-to-end.
+    The CLAM classification path and the embedding/bag inputs are proven in the reference code. The **regression head**, alternative optimizers, and **Optuna HPO** below are new in this design — feasible, but not yet exercised end-to-end.
 
 ## HPO (separate)
 
-```python
-study = optuna.create_study(direction="maximize", sampler=TPESampler(seed=...))
-def objective(trial):
-    hp = sample(trial, hpo.space)
-    return mean(val_metric(train_run(bundle, target, arch, hp, fold_seed, model_seed))
-                for fold_seed in seed_set.fold_seeds[:hpo.cv_subset])
-study.optimize(objective, n_trials=hpo.n_trials)
-promote_top_n(study, hpo.top_n)          # → seed-sweep these in a model experiment
-```
-
-Outputs go under `results/experiments/{name}/hpo/` with their own index; keep `top_n` checkpoints per `reports.yaml`.
+An Optuna study (TPE sampler) whose objective samples a point from `hpo.space` and returns the mean validation metric across a CV subset of fold seeds, optimised over `n_trials`. The best `promote_top_n` configurations are promoted into a seed sweep. Outputs go under `results/experiments/{name}/hpo/` with their own index; checkpoint retention follows `reports.yaml → hpo.keep_checkpoints`.

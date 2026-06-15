@@ -1,53 +1,29 @@
 # Impl · Evaluation (BEAM generation)
 
-Recipe for [Stage 5](../design/07-evaluation.md). [Overview](../design/07-evaluation.md) · [Specification](../spec/evaluation.md) · **Implementation**.
+Implementation notes for [Stage 5](../design/07-evaluation.md). [Overview](../design/07-evaluation.md) · [Specification](../spec/evaluation.md) · **Implementation**.
 
 Reference libraries: **PyTorch** (inference), **h5py** (BEAM), **numpy/pandas**.
 
-## Per-patient inference
+> These are design-level notes, not a prescriptive recipe. The authoritative behaviour is the [evaluation spec](../spec/evaluation.md) (routing, BEAM contract, invariants); a real implementation will be written against the actual codebase.
 
-```python
-folds = load_fold_assignments(run, seed_set)          # patient → fold/split
-for bag in bundle.bags(subset):                       # bags for the chosen subset
-    pat = bag.patient_id
-    if subset == "development":
-        ckpts = [run.checkpoint(fold_of_test(folds, pat))]   # out-of-fold only
-    elif subset == "holdout":
-        ckpts = run.all_checkpoints()                        # ensemble
-    else:  # all
-        ckpts = [run.checkpoint("full")]
+## Inference is organised per-model
 
-    preds, attns = [], []
-    for ck in ckpts:
-        model = load(run.architecture, ck)
-        out = model(bag.embeddings)                   # prediction (+ attention if attention-based)
-        preds.append(out.prediction)
-        if model.has_attention:
-            attns.append(out.attention)               # (N,) aligned to bag patches
+Load each checkpoint **once** and batch through it every patient it is responsible for — never load the model inside a per-patient loop ([why](../spec/evaluation.md#checkpoint-routing-the-crux)). The [checkpoint routing](../spec/evaluation.md#checkpoint-routing-the-crux) maps onto this directly:
 
-    write_beam(bag, prediction=aggregate(preds),
-               attention=mean(attns) if attns else None,
-               checkpoints_used=[c.id for c in ckpts])
-```
+- **`development`** — for each fold, load its checkpoint and score that fold's `test` patients (out-of-fold). Each patient is scored exactly once.
+- **`holdout`** — for each fold checkpoint, score all holdout patients; accumulate per patient and aggregate at the end (default: mean).
+- **`all`** — a single full-data checkpoint scores everyone.
 
-- `aggregate(preds)` — if the run used `target_normalization`, **de-normalize each checkpoint's prediction** with that checkpoint's stats (back to label units) *before* combining; otherwise predictions are already in label units. Then mean for `holdout`, identity for the single out-of-fold / full checkpoint.
-- Attention transforms written to BEAM: `raw` (model weights), `sigmoid = σ(raw)`, `rank = percentile(raw)`.
-- Omit `/attention` entirely for non-attention architectures — do not write zeros.
+Per-patient results are then collected into one BEAM per biopsy.
+
+## Prediction details
+
+- **Aggregation.** If the run used `target_normalization`, de-normalize each checkpoint's prediction with that checkpoint's own stored stats (back to label units) *before* combining. `holdout` then takes the mean across fold checkpoints; `development` / `all` use the single contributing checkpoint as-is.
+- **Attention.** Written only for attention-based architectures, in three transforms: `raw` (model weights), `sigmoid = σ(raw)`, `rank = percentile(raw)`. Non-attention architectures omit `/attention` entirely — never write zeros.
 
 ## Writing the BEAM
 
-```python
-with h5py.File(f"{biopsy_id}__{run_id}.beam.h5", "w") as f:
-    f.attrs.update(provenance)                         # run_id, checkpoints_used, subset, …
-    f["patches/coords"] = bag.coords                   # raw frame, same order as embeddings
-    f["prediction"]     = prediction
-    if attention is not None:
-        f["attention/raw"], f["attention/sigmoid"], f["attention/rank"] = attention, sig, rnk
-    write_outline(f, scan_outline)                     # polygon + quartiles
-    if label is not None: write_labels(f, label)
-```
-
-HDF5 is appendable, so enrichment steps (extra heatmaps, contributions) add datasets later without rewriting.
+One HDF5 file per `(biopsy, run)`, `{biopsy_id}__{run_id}.beam.h5`, holding: provenance attrs (run, checkpoints used, subset, …), patch coordinates in the **raw frame** (same order as the embeddings), the prediction, the attention transforms (if any), the scan outline with quartiles, and the true label when present. HDF5 is appendable, so later enrichment steps (extra heatmaps, contributions) add datasets without rewriting. Exact field layout: [BEAM format](../formats/beam.md) and the [generation contract](../spec/evaluation.md#what-a-beam-contains-generation-contract).
 
 ## Notes
 
