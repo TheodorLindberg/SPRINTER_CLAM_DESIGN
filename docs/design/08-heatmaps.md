@@ -1,6 +1,6 @@
 # Stage 6 · Heatmap Generation
 
-Renders attention and prediction heatmaps from a [BEAM file](07-evaluation.md#the-beam-format) over a chosen source variant, for both static figures and interactive inspection in TissUUmaps.
+A heatmap paints a model's attention back onto the slide — colouring each region by how much it counted toward the prediction — so a pathologist can see *where* the model looked, not just what it scored. This stage builds those overlays from a [BEAM file](07-evaluation.md#the-beam-format), as both static figures and interactive layers for the TissUUmaps viewer.
 
 > **In** BEAM + WSI variant + transformation matrix + outline · **Out** static PNG + TissUUmaps GeoJSON layer
 

@@ -1,6 +1,6 @@
 # Stage 5 · Evaluation
 
-Runs inference and writes one **BEAM** file per biopsy per **run** (a run = a trained model with per-fold checkpoints). Heatmaps are produced separately in [Stage 6](08-heatmaps.md).
+Once models are trained, this stage measures how good they actually are. It runs a trained model over the biopsies and, for each one, records the prediction it made and which patches it paid attention to, saving all of that as one result file per biopsy — a **BEAM** file. Those files are the raw material for both the performance reports here and the [heatmaps](08-heatmaps.md) in the next stage.
 
 > **In** a bundle (chosen subset) + a trained run · **Out** one BEAM file per biopsy per run, + reports
 
@@ -39,7 +39,7 @@ One **BEAM file per biopsy per model**, plus aggregate reports.
 
 ## The BEAM format
 
-**BEAM** — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-model result format, stored as **HDF5** (`{biopsy_id}__{model_id}.beam.h5`). HDF5 is chosen because it is **appendable**: enrichment steps can add fields without breaking existing readers.
+BEAM — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-model result format, stored as HDF5 (`{biopsy_id}__{model_id}.beam.h5`). HDF5 is used because it is appendable: later enrichment steps can add fields without breaking readers that already exist.
 
 Roughly, one BEAM file holds:
 
