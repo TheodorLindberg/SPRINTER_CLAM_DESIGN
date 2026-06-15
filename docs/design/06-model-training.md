@@ -1,6 +1,6 @@
 # Stage 4 · Model Training
 
-Trains MIL models from a bundle. A **model experiment** defines the runs, which fan out over the seed sweep; HPO is a separate search. (Evaluation-only runs skip this stage and go straight to [Stage 5](07-evaluation.md).)
+This is where a model learns to predict a biopsy's score from its bag of patch embeddings. A single training run can be a fluke — of how the patients happened to be split, or of the random numbers the model started from — so instead of trusting one run we train the same setup many times over different splits and random seeds (the **seed sweep**) and look at the spread. Searching for good model settings in the first place (hyperparameter optimization, **HPO**) is a separate, much larger search kept off to the side. (Evaluation-only runs skip this stage and go straight to [Stage 5](07-evaluation.md).)
 
 > **In** a bundle (`development` subset) + a `seed_set` · **Out** per-fold checkpoints, metrics, run records
 
@@ -25,7 +25,12 @@ A run operates on its bundle at the **`development`** subset (or `all` for a fin
 
 ## Fold generation
 
-Generates folds from fold seeds over the **development patients** of the bundle's [cohort](../configs/cohorts.md). A project-wide **split registry** ([`seeds.yaml`](../configs/seeds.md)) holds every seed/split configuration under `seed_sets`, indexed by name; a run picks one with `seed_set:`, so all models sharing that name get identical splits — and because folds are assigned to *patients*, every stain/embedding bundle from the same cohort inherits the same split. (The bundle's cohort and the `seed_set`'s cohort must match — validated.)
+Folds are the cross-validation partitions, drawn from fold seeds over the **development patients** of the bundle's [cohort](../configs/cohorts.md). They are named and reused, not invented per run: a project-wide split registry ([`seeds.yaml`](../configs/seeds.md)) holds every split configuration under `seed_sets`, and a run picks one by name with `seed_set:`. Two consequences fall out of this:
+
+- Any models sharing a `seed_set` name get identical splits — so their results are directly comparable.
+- Because folds are assigned to *patients* (not to bags), every stain/embedding bundle built from the same cohort inherits the same split automatically.
+
+The bundle's cohort and the `seed_set`'s cohort must match; this is validated.
 
 !!! warning "Membership changes invalidate splits"
     Splits are computed against the cohort's frozen, hashed membership. If membership changes (the hash differs), the pipeline raises a prominent warning that splits are stale.
@@ -45,9 +50,9 @@ It aggregates results and emits train/test/loss plots plus a CSV (or similar) of
 
 ## Hyperparameter optimization
 
-Supports **grid search** and a **Bayesian optimizer** (e.g. Optuna / TPE), declared as a search space in its **own [`hpo.yaml`](../configs/hpo.md)** — separate from the model experiment, hundreds of trials, zero extra config files.
+Supports grid search and a Bayesian optimizer (e.g. Optuna / TPE), declared as a search space in its own [`hpo.yaml`](../configs/hpo.md). Keeping it separate means hundreds of trials add no extra config files.
 
-HPO is **kept apart from the seed sweep**, because HPO models are rarely revisited while the sweep models are the ones you keep:
+HPO is kept apart from the seed sweep, because HPO models are rarely looked at again while the sweep models are the ones you keep:
 
 - HPO outputs live under `results/experiments/{name}/hpo/` with their **own index**; the seed-sweep models live under `sweep/`, easy to find.
 - `reports.yaml → hpo.keep_checkpoints` decides storage (`all` / `top_n` / `none`); by default only the **top-N** are retained.
