@@ -4,13 +4,13 @@ cohorts:
 
   prostate_combined_v1:
     members:                        # patients pooled across dataset sources
-      - { dataset: sahlgrenska_2018, patients: all }
-      - { dataset: umea_2018,        patients: all }
+      - { dataset_id: sahlgrenska_2018, patients: all }
+      - { dataset_id: umea_2018,        patients: all }
 
     holdout:                        # these patients get the holdout role; rest = development
       explicit:
-        - { dataset: umea_2018,        patient: p003 }
-        - { dataset: sahlgrenska_2018, patient: p041 }
+        - { dataset_id: umea_2018,        patient: p003 }
+        - { dataset_id: sahlgrenska_2018, patient: p041 }
       # or choose deterministically instead of listing:
       # fraction: 0.10
       # seed: 7

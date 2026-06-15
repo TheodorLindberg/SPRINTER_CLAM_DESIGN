@@ -16,7 +16,7 @@ patching:
   overlap: 0.0                    # stride derived from this
 
 embedding:
-  model: example_embedder_v1
+  model: conch                    # embedding model id (see impl registry of supported models)
   cache: content_addressed        # key: coords + size + resolution + model + variant + aug
   augmentation:                   # image-space; runs the foundation model, cached separately
     enabled: true
@@ -30,7 +30,7 @@ embedding:
 bundle:                           # a bundle is a PREPARED COHORT (one per stain/embedding/variant)
   cohort: prostate_combined_v1
   stains: [HE]                        # one stain per bundle for now (multi-stain = future)
-  embedding_model: example_embedder_v1
+  embedding_model: conch          # must match embedding.model above; appears in bundle_id
   source_variant: raw             # raw for training/metrics
   include_labels: true            # false for label-free evaluation bundles
   embeddings: symlink             # symlink | copy

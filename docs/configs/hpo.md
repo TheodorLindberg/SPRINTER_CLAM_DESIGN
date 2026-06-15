@@ -6,9 +6,11 @@ Hyperparameter search over **one bundle**, kept separate from the [model experim
 
 - `method` — `grid` or `bayesian` (Optuna / TPE).
 - `n_trials` — number of search trials.
-- `space` — the search space (ranges, `log` scale where useful).
-- `keep_checkpoints` — `all` / `top_n` / `none`; HPO models are rarely revisited.
-- `top_n` — how many to promote to a seed sweep.
+- `space` — the search space (per-parameter ranges; `log: true` for log-scale sampling).
+- `promote_top_n` — how many of the best trials to carry forward into a seed sweep.
+
+!!! note "Checkpoint retention lives elsewhere"
+    How many trial checkpoints are kept on disk (`all` / `top_n` / `none`) is set in [`reports.yaml`](reports.md) under `hpo.keep_checkpoints`, not here — `hpo.yaml` only decides how many trials are *promoted*.
 
 ```yaml title="hpo.yaml"
 --8<-- "hpo.yaml"

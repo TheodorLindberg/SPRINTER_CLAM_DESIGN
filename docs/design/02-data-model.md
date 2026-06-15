@@ -98,7 +98,7 @@ All identifiers are stable and recorded in manifests, never inferred from filena
 | `embedding_model_id` | Model name + version |
 | `cohort_id` | Named cohort (e.g. `prostate_combined_v1`) |
 | `role` | `development` / `holdout` — a per-patient tag, not an id |
-| `bundle_id` | `{cohort_id}__s{stains}__patch-{patch_config_id}__src-{source_variant}__emb-{embedding_model_id}` |
+| `bundle_id` | `{cohort_id}__s{stain}__{source_variant}__{embedding_model_id}` (e.g. `prostate_combined_v1__sHE__raw__conch`). One stain, variant, and embedding model per bundle; the patch config is fixed by the preprocessing run and not encoded in the id |
 | `model_experiment_id` | Umbrella grouping name; groups runs across bundles (e.g. `ki67_stain_comparison`) |
 | `run_id` | One run within a model experiment; carries tags |
 | `bag_id` | Fully qualified — see below |

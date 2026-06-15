@@ -16,5 +16,5 @@ space:
   learning_rate: { low: 1.0e-5, high: 1.0e-3, log: true }
   dropout:       { low: 0.1, high: 0.5 }
 
-keep_checkpoints: top_n           # all | top_n | none
-top_n: 3                          # promote best N → seed-sweep them in a model experiment
+promote_top_n: 3                  # promote the best N trials → seed-sweep them in a model experiment
+                                  # (checkpoint retention is set in reports.yaml → hpo.keep_checkpoints)

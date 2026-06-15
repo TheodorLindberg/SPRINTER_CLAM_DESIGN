@@ -1,7 +1,7 @@
 # Stage 2 · WSI Transformation — DRAFT. Registration + tissue outline detection.
 
 dataset_id: sahlgrenska_2018
-input_manifest: data/normalized/sahlgrenska_2018/manifest.csv
+input_manifest: data/normalized/sahlgrenska_2018/manifest.yaml   # input scan manifest (YAML/JSON)
 
 variants: [raw, rigid, elastic]   # source variants to produce
 
