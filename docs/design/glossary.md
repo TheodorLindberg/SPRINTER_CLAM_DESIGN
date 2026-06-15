@@ -19,7 +19,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Biopsy** | A tissue sample from one patient; the unit labels and bags are keyed on. |
 | **Label** | A target on a biopsy — `name`, `type`, `value`. Optional. **Derived labels** are computed from raw scores in preprocessing. |
 | **Score quartile** | One of the 4 per-biopsy IHC scores (Ki67/PSA). Spatially unlocated, so **averaged** to a biopsy value; carried only as metadata. |
-| **Geometric quartile** | A spatial 4-way split of the tissue along the [biopsy axis](#images-patches--embeddings) (PCA line). Used for heatmap regions, **not** mapped to score quartiles. |
+| **Geometric quartile** | A spatial 4-way split of the tissue along the [biopsy axis](#images-patches-embeddings) (PCA line). Used for heatmap regions, **not** mapped to score quartiles. |
 
 ## Images, patches & embeddings
 

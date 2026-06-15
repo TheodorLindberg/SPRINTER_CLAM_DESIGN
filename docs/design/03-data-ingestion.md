@@ -39,7 +39,7 @@ It is a hierarchical document — dataset → patients → biopsies → scans �
 
 Metadata (a patient's age, a biopsy's grade, a scanner model, …) can be attached at any level and travels with the data downstream — see [Metadata](#metadata) below.
 
-The exact structure, with a worked example, lives in the **[input-contract spec](../spec/data-ingestion.md#scan-manifest-yaml--json)**.
+The exact structure, with a worked example, lives in the **[input-contract spec](../spec/data-ingestion.md#scan-manifest-yaml-json)**.
 
 ### Metadata
 
