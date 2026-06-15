@@ -1,5 +1,7 @@
 # Data Model
 
+Everything in the pipeline hangs off one simple chain. A **dataset** comes from a single source and contains **patients**; each patient gives one or more **biopsies** (tissue samples); each biopsy is scanned once per **stain**, and each of those scans is a whole-slide image. The pipeline then derives patches, embeddings, bags, and labels from there. This page defines those entities and the identifiers that name them — the shared vocabulary the rest of the docs assume. (Every term is also in the [Glossary](glossary.md).)
+
 ## Entity hierarchy
 
 ```mermaid
@@ -50,7 +52,7 @@ Three levels, three vocabularies — so the word "test" is never overloaded.
 
 ### Bundles
 
-A **bundle is a prepared cohort**: it materializes the cohort for one `(stain · embedding model · source variant · patch config)`, with **every** patient's bags present and tagged by `role`. **Role is a column in the bundle manifest, not a separate bundle** — one cohort → many bundles (per stain/embedding/etc.), each containing all roles.
+A bundle is a prepared cohort: the cohort prepared for one choice of stain, embedding model, source variant, and patch config, with every patient's bags present and tagged by `role`. Role is a column in the bundle manifest, not a separate bundle — so one cohort produces many bundles (one per stain/embedding/etc.), each containing all roles.
 
 Stages then pick a **subset** (an enum, never a list):
 
