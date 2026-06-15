@@ -125,6 +125,17 @@ Some rule sets are unknown until inputs are read, so they sit behind Snakemake *
 - **Model-experiment expansion** — the `runs` list × `fold_seeds` × `model_seeds` expands into concrete `train_run` jobs.
 - **Evaluation set** — the biopsies present in a bundle determine the `aggregate_beam` jobs.
 
+## Embedding cache vs. the DAG
+
+The content-addressed embedding cache (Stage 3) lets a run embed only cache misses, but Snakemake judges a per-scan embedding file by existence/mtime, **not** by which coordinates it contains. Left naive, widening overlap either looks "already done" and is skipped (stale embeddings) or triggers a full recompute (cache defeated). To keep the two consistent:
+
+- Tie the `embed` output's freshness to the **coords file**, which encodes the `patch_config`. Changing size/overlap rewrites the coords file → `embed` reruns; inside, it loads the existing cache, embeds only the **new** coordinates (delta fill), copies reused rows by `(x, y)`, and rewrites — so the rerun is cheap and correct rather than all-or-nothing.
+- Equivalently, store the cache content-addressed at the **file level** (one object per key) with the per-scan H5 as an assembled view, so reuse is visible to the DAG itself.
+
+## Job grouping (avoid the small-job explosion)
+
+The `scan × variant × patch_config × embedding_model × aug` matrix expands into many short jobs; submitting one SLURM job each would drown the scheduler in overhead. Use Snakemake **`group`** directives to pack many `patch_coords` / `embed` tasks into a single allocation (e.g. group by scan or by patient), and process several scans per worker while a GPU is already warm. The aim is a few well-sized jobs, not thousands of seconds-long ones.
+
 ## Configuration → rules
 
 | Config | Drives |

@@ -18,6 +18,14 @@ Folds are generated **once**, by their own rule, and written to a CSV. Training 
 
 The fold CSV is **passed into** `train_run`, not a `fold_seed` for it to regenerate. For each `fold_seed`, read its pre-generated fold CSV; for each `model_seed`, train a run with those folds and write a [run record](../spec/training.md#run-record-runjson-one-per-run). All records aggregate into `runs.parquet`.
 
+## Bag I/O — load once, reuse across the sweep
+
+A bundle's embeddings are **static** after preprocessing, so they should be read from disk once and reused — not re-read per epoch, per fold, or per run. The seed sweep trains `fold_seeds × model_seeds` models over the same bundle and [evaluation](evaluation.md) reads it yet again; re-reading each time repeats identical I/O dozens of times (the training analog of the per-patient inference trap).
+
+- Load the bundle's bags into memory **once** and share that store across every run in the sweep and across evaluation. Bags are feature vectors, not pixels (~20–60 MB/scan), so a bundle often fits in RAM; otherwise memory-map the H5.
+- Per-fold balancing and sampling select **indices** into this static store — they never copy or re-read embeddings.
+- Optionally pre-pack all bags into one contiguous array + a per-bag offset index, so a run does a handful of large reads instead of thousands of small H5 opens; pin memory for fast host→device transfer.
+
 ## Training a run
 
 A run takes the fold assignment as input. For each fold:

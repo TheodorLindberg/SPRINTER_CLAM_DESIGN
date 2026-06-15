@@ -16,6 +16,8 @@ Load each checkpoint **once** and batch through it every patient it is responsib
 
 Per-patient results are then collected into one BEAM per biopsy.
 
+The same "load once, reuse" rule applies to the data, not just the model: the bundle's embeddings are static, so load them once and reuse across all checkpoints rather than re-reading per patient or per checkpoint (see [Bag I/O](training.md#bag-io-load-once-reuse-across-the-sweep)). Loading checkpoints once **and** embeddings once is what keeps evaluation off the I/O floor.
+
 ## Prediction details
 
 - **Aggregation.** If the run used `target_normalization`, de-normalize each checkpoint's prediction with that checkpoint's own stored stats (back to label units) *before* combining. `holdout` then takes the mean across fold checkpoints; `development` / `all` use the single contributing checkpoint as-is.

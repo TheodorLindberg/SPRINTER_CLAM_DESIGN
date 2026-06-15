@@ -27,6 +27,9 @@ Load the registry model and its fixed normalization, open the slide (OME-TIFF vi
 - Device: respect `CUDA_VISIBLE_DEVICES`; otherwise pick the GPU with the most free memory.
 - HuggingFace offline / SSL workarounds as needed on HPC.
 
+!!! note "Keep the GPU fed"
+    The bottleneck here is patch **decoding** (random-access WSI region reads + JPEG tile decode), not the model forward — a naive read-then-embed loop leaves the GPU idle. Decode and normalize in a CPU worker pool that prefetches into a queue while the GPU consumes large batches (pinned memory), so I/O overlaps compute. Order reads along the slide's native tile grid — or read one larger region and sub-crop several patches — so decoded tiles are reused and access stays sequential rather than random.
+
 !!! note "Input normalization is fixed per model"
     The image mean/std is a **predetermined constant** carried in each registry entry, never fitted on the cohort. Most models use ImageNet stats (`[0.485, 0.456, 0.406]` / `[0.229, 0.224, 0.225]`); CLIP-based models (e.g. CONCH) use their own. Keeping it per-model stops one exception silently mis-normalizing.
 
@@ -48,11 +51,13 @@ To add a model: create a registry module (loader + `NORM`) and reference it by `
 
 ### Content-addressed cache
 
-The [cache key](../spec/preprocessing.md#cache-key) is computed per scan-config; a run diffs the requested coordinates against what's cached, **embeds only the delta**, copies reused rows by `(x, y)` index, and reassembles them in the requested order.
+The [cache key](../spec/preprocessing.md#cache-key) is computed per scan-config; a run diffs the requested coordinates against what's cached, **embeds only the delta**, copies reused rows by `(x, y)` index, and reassembles them in the requested order. For how this incremental cache stays consistent with Snakemake's file-based DAG, see [Embedding cache vs. the DAG](workflow.md#embedding-cache-vs-the-dag).
 
 ### Augmentation
 
 Each configured augmentation is applied to the patch image **before** embedding, then cached under its own `augmentation_id`; `n_variants` sets how many augmented copies per patch. The proven baseline is rotation (90/180/270) and colour jitter (brightness/contrast/saturation/hue); flips and stain-space (HED) jitter slot into the same transform pipeline. The foundation model runs here, never in the training loop.
+
+Read each base patch from the slide **once**, generate all `n_variants` augmentations in memory, and embed them together — never re-open the slide per augmentation (the WSI read is the expensive part, not the transform). Each variant is still written to its own `augmentation_id` cache, so the embeddings stay independently addressable.
 
 ## Bundle assembly
 
