@@ -69,6 +69,6 @@ Ingestion establishes the identifiers a bag is later built from: dataset origin,
 
 ---
 
-## Open items
+## Schema
 
-- Define the exact manifest column schema (keys + reserved metadata conventions).
+The exact manifest structure, label tables, invariants, and acceptance criteria are the **[input-contract spec](../spec/data-ingestion.md)**. (Metadata is free-form nested `metadata:` per level — no reserved keys.)
