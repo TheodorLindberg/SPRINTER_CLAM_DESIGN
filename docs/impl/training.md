@@ -38,9 +38,6 @@ A run takes the fold assignment as input. For each fold:
 
 Emit a [run record](../spec/training.md#run-record-runjson-one-per-run) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
 
-!!! note "Large bags can exhaust GPU memory"
-    A bag is one scan's **full** set of patch embeddings; with small patches or high overlap on a large slide that can be 10⁵+ vectors, and the MIL forward holds the whole bag (plus its attention) on the GPU at once — so a single bag can OOM. At **training**, cap it with a max-patches budget; a per-epoch random subsample is standard MIL practice and adds regularization. At **[evaluation](evaluation.md)**, do **not** subsample — coverage matters for the heatmap — instead compute the attention/pooling in **chunks** over the full bag (logits per chunk → one softmax → weighted sum), so memory is bounded without dropping patches.
-
 ### Augmented bags
 
 If `use_augmented_embeddings`, the bundle's `augmented`-tagged bags are added to the **train split only**, in their patient's fold. They never enter `val` / `test` / `holdout` — otherwise metrics would be optimistic and the split would leak.
