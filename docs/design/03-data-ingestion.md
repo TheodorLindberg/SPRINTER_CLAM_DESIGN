@@ -12,11 +12,9 @@ This stage sits **outside Snakemake**: every dataset arrives differently, so eac
 
 ## Normalized structure
 
-Ingestion produces two things: the **scan files** and a **scan manifest**.
+Ingestion produces the **scan files** and a **scan manifest**.
 
-The manifest exists precisely so the **on-disk layout can be anything**: it maps each scan's ids → its file path, and every downstream stage resolves scans through the manifest — no stage parses the directory tree. So you organise the files however suits your dataset, and the manifest absorbs that choice.
-
-A folder hierarchy mirroring the entities is a readable default:
+The manifest maps each scan's ids → file path; downstream stages resolve scans through it and never read the directory tree. The on-disk layout is therefore unconstrained — a folder hierarchy mirroring the entities is a convenient default:
 
 ```text
 patient_<x>/
@@ -24,7 +22,7 @@ patient_<x>/
     <stain>.<ext>      # <ext> = any OpenSlide-supported format
 ```
 
-…but a flat dump, a date-based layout, or symlinks all work just as well — only the manifest's paths need to resolve.
+Any other layout (flat, symlinked) works as long as the manifest's paths resolve.
 
 ## Scan manifest (the contract)
 
