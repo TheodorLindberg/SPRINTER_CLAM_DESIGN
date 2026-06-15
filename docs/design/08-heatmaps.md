@@ -18,7 +18,7 @@ flowchart LR
 
 ## Inputs
 
-- **BEAM file** — attention (raw / sigmoid / rank), patch coordinates, prediction, labels, metadata.
+- **BEAM file** — the per-biopsy attention, patch coordinates, and prediction it renders (full layout: [BEAM format](../formats/beam.md)).
 - **WSI** in the chosen source variant — `raw`, `rigid`, or `elastic`, depending on the alignment the visual needs (see [WSI Transformation](04-wsi-transformation.md#training-vs-heatmap-roles)).
 - **Transformation matrix** for that variant.
 - **Tissue outline** for that variant.

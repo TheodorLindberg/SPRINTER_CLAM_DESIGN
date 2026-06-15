@@ -23,14 +23,16 @@ This routing is what produces an honest CV-test score vs. a holdout score.
 
 ## What a BEAM contains (generation contract)
 
+The BEAM **layout, datasets, and attributes** are defined once in the [BEAM format](../formats/beam.md). This spec fixes only **how the values are produced**:
+
 | Field | How it is produced |
 |---|---|
 | `prediction` | Bag-level model output (regression value, or class probabilities). For `holdout`, the aggregate across fold checkpoints. |
 | `attention/{raw,sigmoid,rank}` | **Only for attention-based architectures** (CLAM). `raw` = model attention; `sigmoid` = squashed; `rank` = percentile. Mean-pool / regression heads have **no** `/attention` (omitted, not faked). |
-| `patches/coords` | From the bundle's embedding file — **raw WSI frame**. |
+| `patches/coords` | From the bundle's embedding file — **raw WSI frame**, same order as the embeddings fed to the model. |
 | `outline/` (+ quartiles) | The scan's outline + biopsy-axis quartiles from [Stage 2](wsi-transformation.md). |
 | `labels/` | True label from the bundle's `labels.csv`, joined on `(dataset_id, patient_id, biopsy_id)`; absent for label-free bundles. |
-| root attrs | `run_id`, `model_experiment`, `checkpoints_used`, `bundle_id`, `cohort_id`, `subset`, `embedding_model_id`, `source_variant`, `patch_config_id`, `stain`, `evaluation_tag`, `biopsy_id/patient_id/dataset_id`, `membership_hash`, `git_commit` + forwarded scan metadata. |
+| root attrs | Provenance per the format's [root attributes](../formats/beam.md#root-attributes); in particular `checkpoints_used` records the contributing fold checkpoint(s), and `membership_hash` / `git_commit` capture reproducibility state. |
 
 ## Aggregation (per-bag → per-biopsy)
 

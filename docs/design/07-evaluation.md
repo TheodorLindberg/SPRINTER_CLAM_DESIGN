@@ -39,18 +39,9 @@ One **BEAM file per biopsy per model**, plus aggregate reports.
 
 ## The BEAM format
 
-BEAM — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-model result format, stored as HDF5 (`{biopsy_id}__{model_id}.beam.h5`). HDF5 is used because it is appendable: later enrichment steps can add fields without breaking readers that already exist.
+BEAM — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-run result format: one appendable HDF5 file holding the prediction, per-patch attention (for attention models), patch coordinates, the tissue outline, true labels where available, and full provenance. HDF5 is used because it is appendable — later enrichment steps add datasets without breaking existing readers.
 
-Roughly, one BEAM file holds:
-
-- **Attention** per patch — raw, sigmoid, rank.
-- **Prediction(s)** for the biopsy and **true labels** where available.
-- **Patch coordinates** (WSI frame) and patch size.
-- **Tissue outline** used, as a polygon array, optionally divided into quartiles.
-- **Provenance** — patient, stain, source variant, model, embedding model, patch config.
-- **Free-form metadata**; quartile carried as metadata.
-
-→ Full layout and field mapping: **[BEAM format spec](../formats/beam.md)**.
+Its layout, datasets, and attributes are defined once in the **[BEAM format](../formats/beam.md)**; how each value is produced (checkpoint routing, aggregation, de-normalization) is the **[evaluation spec](../spec/evaluation.md)**.
 
 ---
 

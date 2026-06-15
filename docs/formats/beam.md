@@ -53,9 +53,12 @@ Produced by [Stage 5 · Evaluation](../design/07-evaluation.md); consumed by rep
 |---|---|
 | `format_version` | BEAM schema version |
 | `biopsy_id`, `patient_id`, `dataset_id` | Entity provenance |
-| `run_id`, `embedding_model_id` | Which trained run + embedder produced this |
+| `run_id`, `model_experiment` | Which trained run + its experiment umbrella |
+| `bundle_id`, `cohort_id` | The bundle scored and its cohort |
+| `embedding_model_id` | Embedder that produced the bag |
 | `checkpoints_used`, `subset` | Fold checkpoint(s) and the subset (`development` / `holdout` / `all`) |
 | `evaluation_tag` | Readable evaluation-run name |
+| `membership_hash`, `git_commit` | Reproducibility state (cohort membership + code version) |
 | `stain` | Stain of the evaluated scan(s) |
 | `source_variant` | `raw` / `rigid` / `elastic` |
 | `patch_config_id`, `patch_size`, `patch_resolution` | Patching configuration |
