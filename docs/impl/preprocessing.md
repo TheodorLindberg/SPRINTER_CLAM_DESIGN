@@ -27,6 +27,9 @@ Load the registry model and its fixed normalization, open the slide (OME-TIFF vi
 - Device: respect `CUDA_VISIBLE_DEVICES`; otherwise pick the GPU with the most free memory.
 - HuggingFace offline / SSL workarounds as needed on HPC.
 
+!!! note "Resolve target mpp consistently across formats"
+    `resolution_mpp` is a physical scale, but each WSI exposes its own pyramid — raw NDPI via OpenSlide, registered OME-TIFF via tifffile/zarr — with different level layouts and metadata. Reading at the target mpp means picking the nearest pyramid level at or below it and resampling to the exact scale, using each format's **real** mpp/level metadata rather than an assumed 40×/20×. Carry the mpp through registration so registered variants report correct scale too (heatmap scale bars depend on it). Picking the wrong level silently changes the field of view every patch covers.
+
 !!! note "Keep the GPU fed"
     The bottleneck here is patch **decoding** (random-access WSI region reads + JPEG tile decode), not the model forward — a naive read-then-embed loop leaves the GPU idle. Decode and normalize in a CPU worker pool that prefetches into a queue while the GPU consumes large batches (pinned memory), so I/O overlaps compute. Order reads along the slide's native tile grid — or read one larger region and sub-crop several patches — so decoded tiles are reused and access stays sequential rather than random.
 
@@ -47,11 +50,14 @@ Each `embedding_model_id` maps to a registry module exposing a loader (`load(pre
 !!! note "Access requirements"
     `uni2_h`, `conch`, and `gigapath` are **gated** on HuggingFace: accept the terms on each model page with an account that has access, and set `HF_TOKEN` before the first download. `conch` additionally needs its `conch` package. `tenpercent_resnet18` is **not** on HF — download its checkpoint from the linked repo.
 
+!!! note "Pre-fetch weights before offline GPU jobs"
+    HPC compute nodes typically run with `HF_HUB_OFFLINE=1` and no internet, so the first-time download of gated weights must happen on a **login node** (with `HF_TOKEN`) into the shared HF cache *before* any GPU job is submitted. A job that tries to download on a compute node will fail or hang.
+
 To add a model: create a registry module (loader + `NORM`) and reference it by `embedding_model_id`.
 
 ### Content-addressed cache
 
-The [cache key](../spec/preprocessing.md#cache-key) is computed per scan-config; a run diffs the requested coordinates against what's cached, **embeds only the delta**, copies reused rows by `(x, y)` index, and reassembles them in the requested order. For how this incremental cache stays consistent with Snakemake's file-based DAG, see [Embedding cache vs. the DAG](workflow.md#embedding-cache-vs-the-dag).
+The [cache key](../spec/preprocessing.md#cache-key) is computed per scan-config; a run diffs the requested coordinates against what's cached, **embeds only the delta**, copies reused rows by `(x, y)` index, and reassembles them in the requested order. That order is **canonical**: because the delta-fill stitches reused and new rows together, the final row order must be the one training/evaluation feed the model *and* the one BEAM writes as `patches/coords`, or attention stops lining up with coordinates ([BEAM invariant](../spec/evaluation.md#invariants)). For how this incremental cache stays consistent with Snakemake's file-based DAG, see [Embedding cache vs. the DAG](workflow.md#embedding-cache-vs-the-dag).
 
 ### Augmentation
 

@@ -34,9 +34,9 @@ Per scan, draw the outline(s) on a thumbnail. With comparison on, overlay **both
 
 ## Biopsy axis (PCA line)
 
-The longitudinal axis of a core, used to cut it into geometric quartiles. The approach:
+The longitudinal axis of a core, used to cut it into geometric quartiles. It is computed in the **`raw` frame** — the frame training patches are drawn from — so a raw patch's quartile is well defined; registered-frame copies are derived only for visualization ([spec](../spec/wsi-transformation.md#biopsy-axis-pca-line)). The approach:
 
-- Take the tissue-pixel (or dense-outline) coordinates, scaled to level-0. The **principal eigenvector** of their covariance — the direction of largest variance — is the long axis. The **variance ratio** (largest eigenvalue / total) measures how line-like the core is.
+- Take the raw tissue-pixel (or dense-outline) coordinates, scaled to level-0. The **principal eigenvector** of their covariance — the direction of largest variance — is the long axis. The **variance ratio** (largest eigenvalue / total) measures how line-like the core is.
 - Project every point onto that direction to get a 1-D position along the axis. Its min and max give the core **length** (× `mpp` → mm), and four equal segments between them are the **quartile cuts**.
 - A patch's quartile is found by projecting its centroid onto the axis and seeing which segment it falls in. Optionally, clipping the outline with lines perpendicular to the axis at each cut yields quartile **polygons** for visuals.
 - Store the centroid, direction, `t_min`/`t_max`, length (px and mm), variance ratio, and quartile cuts.
