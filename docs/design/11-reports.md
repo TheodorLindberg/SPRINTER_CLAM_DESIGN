@@ -1,6 +1,6 @@
 # Reports
 
-Interactive HTML reports over the pipeline's artifacts. Configured by [`reports.yaml`](../configs/reports.md).
+Reports are the human-facing window onto what the pipeline produces — who is in which cohort, how the folds were split, how each model scored — as browsable HTML pages with interactive plots and sortable tables. They are configured by [`reports.yaml`](../configs/reports.md).
 
 ## Principle: a report is a view, never a source of truth
 
