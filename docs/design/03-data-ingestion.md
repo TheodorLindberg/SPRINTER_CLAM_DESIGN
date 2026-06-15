@@ -1,15 +1,12 @@
 # Stage 1 · Data Ingestion
 
-Normalizes a raw dataset into the standard format the rest of the pipeline reads.
+Every dataset we receive is organised differently — different folder layouts, file names, and label spreadsheets. This stage repackages one such dataset into the single predictable shape the rest of the pipeline reads, so nothing further down has to care where the original files came from. It is the one stage you write yourself: we ship a ready-made ingester for our own dataset, and anyone adding a new dataset writes a small bridge script that produces the same shape.
 
 > **In** a raw dataset (WSIs + source labels) · **Out** normalized scans, a [scan manifest](#the-scan-manifest), and a per-biopsy label table
 
 *Go deeper: [Specification — input contract](../spec/data-ingestion.md) (full manifest and label schemas, invariants, acceptance criteria).*
 
-!!! abstract "In plain terms"
-    Every dataset we receive is organised differently — different folder layouts, file names, and label spreadsheets. This stage repackages one such dataset into a single predictable shape, so nothing further down the pipeline has to care where the original files came from. It is the one stage you write yourself: we provide a ready-made ingester for our own dataset, and anyone adding a new dataset writes a small script that produces the same shape.
-
-This stage sits **outside Snakemake**. Because every dataset arrives differently, there is no single ingester we can ship for all of them; each source needs its own short bridge script. What every bridge must produce is the same, and is fixed by the [input contract](../spec/data-ingestion.md).
+This stage sits **outside Snakemake**. Because every dataset arrives differently, there is no single ingester we can ship for all of them — but what every bridge must produce is identical, and is fixed by the [input contract](../spec/data-ingestion.md).
 
 ---
 
