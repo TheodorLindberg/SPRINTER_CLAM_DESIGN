@@ -1,6 +1,6 @@
 # Stage 3 · Dataset Preprocessing
 
-Turns normalized scans and their transformation outputs into patch embeddings, then packages everything a single training or evaluation run needs into a **bundle**.
+A whole-slide image is far too large to feed to a model whole, so this stage cuts each slide into small tiles (**patches**), runs every tile through an AI model that turns it into a compact numeric fingerprint (an **embedding**), and then gathers everything one experiment needs — the embeddings, the labels, and which patients belong — into a single self-contained package called a **bundle**. It also decides, up front, *which* patients an experiment runs on ([cohort resolution](#cohort-resolution)).
 
 > **In** scans, tissue outlines, source labels · **Out** cached patch embeddings + bundles (prepared cohorts)
 
@@ -19,7 +19,7 @@ Label processing is independent of registration and runs in parallel; patch gene
 
 ## Cohort resolution
 
-The first step: a [cohort](../configs/cohorts.md) definition is **resolved into a frozen, hashed membership** (which patients, in which role), **validated** (members exist, holdout is clean, pooled labels are comparable), and turned into a **cohort HTML report** — composition by dataset and role, and label distributions. It runs on its own (the `cohort` target) so a cohort can be checked *before* any heavy compute, and the frozen membership is what bundles and folds derive from.
+The first step. A [cohort](../configs/cohorts.md) definition is resolved into a frozen, hashed membership — which patients take part, and in which role — and validated: the members exist, the holdout set is clean, and pooled labels are comparable across sources. The result is written up as a cohort HTML report (composition by dataset and role, plus label distributions). It runs on its own (the `cohort` target), so a cohort can be sanity-checked before any heavy compute, and everything downstream — bundles and folds — derives from this one frozen membership.
 
 ---
 
@@ -47,7 +47,7 @@ Snakemake cannot track individual patches — there are far too many — but we 
 
 ### Content-addressed embedding cache
 
-Each embedding is keyed by its **WSI patch coordinates + patch size + resolution + embedding model + source variant**, stored per scan as binary **HDF5**. Any run looks up by key and embeds only cache misses, so:
+Each embedding is keyed by what it was computed from — patch coordinates, patch size, resolution, embedding model, and source variant — and stored per scan as binary HDF5. A run looks each patch up by key and only embeds the misses, so:
 
 - Different overlap settings simply produce different coordinate sets.
 - Shared positions reuse cached embeddings automatically.
@@ -64,7 +64,7 @@ Augmented variants are embedded and cached as **their own embedding sets** (the 
 
 ## Bundle preparation
 
-A **bundle is a prepared cohort**: it materializes one [cohort](../configs/cohorts.md) for one `(stain · embedding model · source variant · patch config)`. It is the self-contained hand-off unit to the model stages. Assembly is cheap (mostly symlinks), so many bundles are built from the same cached embeddings.
+A bundle is a prepared cohort: one [cohort](../configs/cohorts.md), fixed to a single choice of stain, embedding model, source variant, and patch configuration. It is the self-contained package handed to the model stages. Assembling one is cheap — mostly symlinks — so many bundles can be built from the same cached embeddings.
 
 A bundle folder contains:
 
