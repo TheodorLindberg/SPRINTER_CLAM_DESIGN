@@ -39,7 +39,7 @@ The clean rule: bundles carry **raw** labels and embeddings only. Anything fitte
 
 **Decided: nested `metadata:` per level in the YAML/JSON scan manifest, forwarded into the bundle and BEAM grouped by level.**
 
-The scan manifest is hierarchical (`dataset → patient → biopsy → scan`), so metadata sits as a `metadata:` block at whichever level it describes — written once, no repetition. Preprocessing forwards it downstream **keeping the level tag**, and the [BEAM](../formats/beam.md) `/metadata` stores it grouped `dataset/ patient/ biopsy/ scan/`, so a reader always knows what a value describes. No separate metadata store, and the nested form handles irregular/structured metadata directly. See [Data Ingestion · Scan manifest](03-data-ingestion.md#scan-manifest-the-contract).
+The scan manifest is hierarchical (`dataset → patient → biopsy → scan`), so metadata sits as a `metadata:` block at whichever level it describes — written once, no repetition. Preprocessing forwards it downstream **keeping the level tag**, and the [BEAM](../formats/beam.md) `/metadata` stores it grouped `dataset/ patient/ biopsy/ scan/`, so a reader always knows what a value describes. No separate metadata store, and the nested form handles irregular/structured metadata directly. See [Data Ingestion · Scan manifest](03-data-ingestion.md#the-scan-manifest).
 
 ---
 

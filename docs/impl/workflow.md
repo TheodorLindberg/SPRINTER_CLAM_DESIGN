@@ -4,7 +4,7 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 ## Orchestration model
 
-- **Stage 1 (Ingestion) is outside Snakemake** — a user bridge writes the normalized scans + [scan manifest](../design/03-data-ingestion.md#scan-manifest-the-contract). The DAG starts from that manifest.
+- **Stage 1 (Ingestion) is outside Snakemake** — a user bridge writes the normalized scans + [scan manifest](../design/03-data-ingestion.md#the-scan-manifest). The DAG starts from that manifest.
 - **Stages 2–6 are Snakemake.** Each stage is independently runnable via a **named target**; one top-level workflow chains them.
 - **Config layering:** [`base.yaml`](../configs/base.md) (roots + registries) is always loaded; the stage's config supplies the rest; the [`cohorts`](../configs/cohorts.md) and [`seeds`](../configs/seeds.md) registries resolve membership and splits. `--configfile base.yaml <stage>.yaml`.
 - **Execution:** rules carry `resources:` (gpu/mem/runtime); a cluster-generic SLURM profile dispatches workers; heavy rules (`embed`, `train_run`) run on GPU.

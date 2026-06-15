@@ -10,7 +10,7 @@ Contracts for [Stage 3](../design/05-dataset-preprocessing.md). [Overview](../de
 
 ### Validation (hard errors)
 
-- Every listed patient exists in its dataset's [scan manifest](../design/03-data-ingestion.md#scan-manifest-the-contract).
+- Every listed patient exists in its dataset's [scan manifest](../design/03-data-ingestion.md#the-scan-manifest).
 - Every `holdout` patient is a member; no patient has more than one role.
 - A fraction+seed holdout is reproducible (same members + seed → same split).
 - Across pooled datasets, the target label's `name`/`type` are comparable (no silent scale mismatch).

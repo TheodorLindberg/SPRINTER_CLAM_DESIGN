@@ -71,7 +71,7 @@ A bundle folder contains:
 - A bundle manifest — one row per bag, with its patient `role` (`development` / `holdout`), patient/biopsy ids, and embedding path.
 - A label CSV — **all** labels, regardless of the eventual target (absent for label-free evaluation bundles).
 - Symlinked or copied embedding (HDF5) and tissue (GeoJSON) files; patch coordinates as HDF5.
-- Metadata — cohort + frozen membership hash, embedding model, patch settings, source variant, **plus the entity-level metadata columns forwarded from the [scan manifest](03-data-ingestion.md#scan-manifest-the-contract)**.
+- Metadata — cohort + frozen membership hash, embedding model, patch settings, source variant, **plus the entity-level metadata columns forwarded from the [scan manifest](03-data-ingestion.md#the-scan-manifest)**.
 
 ### One bundle, roles as tags
 

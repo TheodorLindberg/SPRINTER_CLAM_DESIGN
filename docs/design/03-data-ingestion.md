@@ -1,72 +1,69 @@
 # Stage 1 · Data Ingestion
 
-Normalizes a raw dataset into the standardized format the rest of the pipeline consumes.
+Normalizes a raw dataset into the standard format the rest of the pipeline reads.
 
-> **In** raw dataset files (WSIs + source labels) · **Out** normalized scans, a [scan manifest](#scan-manifest-the-contract), a per-biopsy label CSV
+> **In** a raw dataset (WSIs + source labels) · **Out** normalized scans, a [scan manifest](#the-scan-manifest), and a per-biopsy label table
 
-*Go deeper: [Specification — input contract](../spec/data-ingestion.md) (manifest + label schemas, invariants, acceptance criteria).*
+*Go deeper: [Specification — input contract](../spec/data-ingestion.md) (full manifest and label schemas, invariants, acceptance criteria).*
 
-This stage sits **outside Snakemake**: every dataset arrives differently, so each user writes their own bridge to produce the normalized structure. We supply a ready-made ingester only for our own input dataset; others implement to the same contract.
+!!! abstract "In plain terms"
+    Every dataset we receive is organised differently — different folder layouts, file names, and label spreadsheets. This stage repackages one such dataset into a single predictable shape, so nothing further down the pipeline has to care where the original files came from. It is the one stage you write yourself: we provide a ready-made ingester for our own dataset, and anyone adding a new dataset writes a small script that produces the same shape.
+
+This stage sits **outside Snakemake**. Because every dataset arrives differently, there is no single ingester we can ship for all of them; each source needs its own short bridge script. What every bridge must produce is the same, and is fixed by the [input contract](../spec/data-ingestion.md).
 
 ---
 
-## Normalized structure
+## What ingestion produces
 
-Ingestion produces the **scan files** and a **scan manifest**.
+Two things:
 
-The manifest maps each scan's ids → file path; downstream stages resolve scans through it and never read the directory tree. The on-disk layout is therefore unconstrained — a folder hierarchy mirroring the entities is a convenient default:
+1. **The scan files** — the whole-slide images, in any OpenSlide-supported format.
+2. **A scan manifest** — a small file that lists every scan and where to find it.
+
+Optionally, it also produces one or more **label tables** (see [Labels](#labels) below).
+
+### File layout is free
+
+The pipeline finds scans through the manifest, never by walking the directory tree, so the on-disk layout is up to you. A folder hierarchy that mirrors the entities is a convenient default:
 
 ```text
 patient_<x>/
   biopsy_<x>/
-    <stain>.<ext>      # <ext> = any OpenSlide-supported format
+    <stain>.<ext>        # any OpenSlide-supported format
 ```
 
-Any other layout (flat, symlinked) works as long as the manifest's paths resolve.
+A flat folder, symlinks, or any other arrangement works equally well, as long as the paths in the manifest resolve.
 
-## Scan manifest (the contract)
+## The scan manifest
 
-A hierarchical **YAML/JSON** document — `dataset → patients → biopsies → scans` — with an optional `metadata:` block at any level:
+The manifest is the **contract** between your ingester and the rest of the pipeline: a single file that maps each scan's identity to its file path. Every later stage resolves scans through it.
 
-```yaml
-dataset_id: sahlgrenska_2018
-patients:
-  p0001:
-    metadata: { age: 67 }                     # patient-level
-    biopsies:
-      b01:
-        metadata: { gleason: 7 }              # biopsy-level
-        scans:
-          HE:   { path: .../p0001_b01_HE.ndpi }
-          Ki67: { path: .../p0001_b01_Ki67.ndpi, metadata: { antibody: MIB-1 } }
-```
+It is a hierarchical document — dataset → patients → biopsies → scans — written as YAML or JSON. A scan is identified by its biopsy and its stain (`HE`, `Ki67`, `PSA`, …); there is at most one scan per stain per biopsy, so scans need no separate id of their own.
 
-A scan is identified by **`(biopsy_id, stain)`** — at most one scan per stain per biopsy, so there is **no separate `scan_id`** (a `{biopsy_id}__{stain}` handle is derived where needed). Full schema, invariants, and acceptance criteria: **[input-contract spec](../spec/data-ingestion.md)**.
+Metadata (a patient's age, a biopsy's grade, a scanner model, …) can be attached at any level and travels with the data downstream — see [Metadata](#metadata) below.
 
-### Metadata, at any level
+The exact structure, with a worked example, lives in the **[input-contract spec](../spec/data-ingestion.md#scan-manifest-yaml--json)**.
 
-`metadata:` can sit at the **dataset, patient, biopsy, or scan** level — nested, so a value is written once (no repetition). Each entry **keeps its level**: preprocessing forwards it into the bundle and the [BEAM](../formats/beam.md) `/metadata`, grouped by level, so reports and heatmaps know whether a value describes the patient, biopsy, or scan — without re-joining the source. See the [metadata decision](09-open-questions.md#metadata-file-scope).
+### Metadata
+
+A `metadata:` block can sit at the **dataset, patient, biopsy, or scan** level, so each value is written once at the level it describes. Each value keeps its level all the way through the pipeline: preprocessing forwards it into the bundle and into each [BEAM](../formats/beam.md) result file, grouped by level, so reports and heatmaps always know whether a value describes the patient, the biopsy, or the scan — without re-joining the original source. See the [metadata decision](09-open-questions.md#metadata-file-scope).
 
 ---
 
 ## Labels
 
-Labels are **separate from the manifest** (they are targets, not descriptive metadata) and supplied as **one or more tables** keyed by patient + biopsy — each table one label family, so different shapes coexist. For this project:
+Labels are the values a model is trained to predict (a Gleason grade, a Ki67 score). They are kept **separate from the manifest**, because they are prediction targets rather than descriptive metadata, and they often arrive later and in different shapes.
 
-- Proliferation / differentiation scores **per quartile** (4 per biopsy). Region information is unavailable, so these are averaged in a later step.
-- Gleason grade.
-- Biopsy and tumor length.
+Each label table covers one label family, keyed by patient and biopsy, so families with different shapes can coexist. For this project:
 
-Preprocessing merges the configured tables and normalizes them into one long label set. Labels are optional — an evaluation-only dataset may ship without any. See the [input-contract spec](../spec/data-ingestion.md#label-tables-optional).
+- **Proliferation / differentiation scores**, as four per-biopsy quartiles. The region each quartile came from is unknown, so they are averaged into a single biopsy value in a later step.
+- **Gleason grade.**
+- **Biopsy and tumor length.**
 
----
-
-## Bag naming inputs
-
-Ingestion establishes the identifiers a bag is later built from: dataset origin, patient index, biopsy index, and staining method. The remaining components (patching configuration, source variant, embedding model) are assigned downstream. See [Data Model · Bag naming](02-data-model.md#bag-naming).
+Preprocessing merges the configured tables into one normalized label set. Labels are **optional**: an evaluation-only dataset may ship without any. See the [input-contract spec](../spec/data-ingestion.md#label-tables-optional).
 
 ---
 
-## Schema
+## What this stage sets up downstream
 
-The exact manifest structure, label tables, invariants, and acceptance criteria are the **[input-contract spec](../spec/data-ingestion.md)**. (Metadata is free-form nested `metadata:` per level — no reserved keys.)
+Ingestion fixes the identifiers a model input ([bag](02-data-model.md#entity-definitions)) is later built from: which dataset, patient, biopsy, and stain it came from. The remaining pieces — patching configuration, source variant, embedding model — are assigned by later stages. See [Data Model · Bag naming](02-data-model.md#bag-naming).
