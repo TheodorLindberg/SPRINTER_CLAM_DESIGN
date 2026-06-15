@@ -107,6 +107,6 @@ write_json(metadata, {cohort_id, membership_hash: hash_, ...forwarded scan metad
 ```
 
 - **Symlink** embeddings/outlines by default (cheap); copy only when a bundle must be portable.
-- **Derived labels** (`mean`, `max`, threshold-to-binary, …) are computed here from raw scores and written to `labels.csv`; the set is config-driven and extendable.
+- **Labels** — merge the configured `labels.sources` tables on `(dataset, patient, biopsy)`, then compute **derived labels** (`mean`, `max`, threshold-to-binary, …). Written to `labels.csv` in **long form** (one row per biopsy × label_name); config-driven and extendable.
 - Forward the scan-manifest metadata columns into `metadata.json` so they reach reports/BEAM.
 - Emit nothing fitted — normalization happens at training time.

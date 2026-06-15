@@ -1,9 +1,14 @@
 # Stage 3 · Dataset Preprocessing — DRAFT. (1) cached per-scan work, (2) bundle assembly.
 
 labels:
-  derived:                        # derived from raw scores; extendable per dataset
+  sources:                        # one or more raw tables, merged on (patient, biopsy)
+    - { file: labels/ki67.csv,    columns: { ki67_quartiles: [q1, q2, q3, q4] } }
+    - { file: labels/gleason.csv, columns: { gleason: gleason_grade } }
+    - { file: labels/lengths.csv, columns: { biopsy_len: biopsy_length_mm, tumor_len: tumor_length_mm } }
+  derived:                        # normalized targets computed from the merged sources
     - { name: ki67_avg,  type: continuous, from: ki67_quartiles, op: mean }
     - { name: ki67_high, type: binary,     from: ki67_avg,       threshold: 20 }
+    - { name: gleason,   type: ordinal,    from: gleason }
 
 patching:
   patch_size: 256

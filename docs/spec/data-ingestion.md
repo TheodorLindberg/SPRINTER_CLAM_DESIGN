@@ -38,9 +38,18 @@ patients:
 !!! note "Tabular vs hierarchical"
     The *input* manifest is hierarchical → YAML/JSON. The *generated* per-row manifests (bag manifest, folds) stay tabular (CSV/Parquet) — they are row data, not nested config.
 
-## Label table (optional)
+## Label tables (optional)
 
-A tabular file (CSV/Parquet) keyed by `(dataset_id, patient_id, biopsy_id)`; columns are the **raw** dataset scores (e.g. Ki67 / PSA quartiles, Gleason grade, biopsy / tumor length). Kept separate from `metadata:` — **labels are training targets, metadata is descriptive**. Entirely absent for label-free (evaluation-only) datasets. Derived labels are computed later in [preprocessing](preprocessing.md).
+Labels are supplied as **one or more tables** (CSV/Parquet), **separate from the manifest** — they are training **targets**, not descriptive metadata, and typically arrive later and in different shapes. Each table holds **one label family**, keyed by `(dataset_id, patient_id, biopsy_id)`:
+
+- `ki67.csv` → Ki67 quartile columns
+- `gleason.csv` → an ordinal grade
+- `lengths.csv` → biopsy / tumor length
+
+[Preprocessing](preprocessing.md) reads the configured sources, **merges them on the biopsy key**, and normalizes them into one **long** label table — `(dataset, patient, biopsy, label_name, label_value, label_type)`, one row per biopsy × label — which absorbs any mix of types.
+
+- **Why separate files:** each family keeps its natural schema; a new label set is a new file (no editing existing data); a biopsy missing from a file is simply unlabelled for that family.
+- Absent entirely for label-free (evaluation-only) datasets.
 
 ## Invariants
 

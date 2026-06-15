@@ -12,9 +12,11 @@ This stage sits **outside Snakemake**: every dataset arrives differently, so eac
 
 ## Normalized structure
 
-Ingestion produces two things: the scan files and a **scan manifest**. The manifest is the pipeline's only interface — **the on-disk layout is free**, because no stage parses the directory structure.
+Ingestion produces two things: the **scan files** and a **scan manifest**.
 
-A folder hierarchy mirroring the entity hierarchy is the suggested convention:
+The manifest exists precisely so the **on-disk layout can be anything**: it maps each scan's ids → its file path, and every downstream stage resolves scans through the manifest — no stage parses the directory tree. So you organise the files however suits your dataset, and the manifest absorbs that choice.
+
+A folder hierarchy mirroring the entities is a readable default:
 
 ```text
 patient_<x>/
@@ -22,7 +24,7 @@ patient_<x>/
     <stain>.<ext>      # <ext> = any OpenSlide-supported format
 ```
 
-A flat layout works equally well; folders vs. flat is the ingester's choice.
+…but a flat dump, a date-based layout, or symlinks all work just as well — only the manifest's paths need to resolve.
 
 ## Scan manifest (the contract)
 
@@ -51,13 +53,13 @@ A scan is identified by **`(biopsy_id, stain)`** — at most one scan per stain 
 
 ## Labels
 
-Alongside the scans, a CSV holds per-biopsy labels keyed by patient, biopsy, and stain. The set is dataset-specific; for this project:
+Labels are **separate from the manifest** (they are targets, not descriptive metadata) and supplied as **one or more tables** keyed by patient + biopsy — each table one label family, so different shapes coexist. For this project:
 
 - Proliferation / differentiation scores **per quartile** (4 per biopsy). Region information is unavailable, so these are averaged in a later step.
 - Gleason grade.
-- Biopsy length and tumor length.
+- Biopsy and tumor length.
 
-Labels are optional — an evaluation-only dataset may ship without them.
+Preprocessing merges the configured tables and normalizes them into one long label set. Labels are optional — an evaluation-only dataset may ship without any. See the [input-contract spec](../spec/data-ingestion.md#label-tables-optional).
 
 ---
 

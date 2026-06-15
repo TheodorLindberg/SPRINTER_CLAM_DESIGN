@@ -4,7 +4,8 @@ Two parts: **heavy per-scan work** (labels, patching, embedding — cached) and 
 
 **Key fields**
 
-- `labels.derived` — labels computed from the raw scores (averages, thresholds, …); extendable per dataset. See the [label model](../design/02-data-model.md#label-model).
+- `labels.sources` — one or more raw label tables, merged on `(patient, biopsy)`; each declares which columns map to which raw label (so heterogeneous families coexist).
+- `labels.derived` — normalized targets computed from the merged sources (averages, thresholds, …); extendable per dataset. See the [label model](../design/02-data-model.md#label-model).
 - `patching` — patch size, resolution, and overlap (stride derives from overlap).
 - `embedding.cache` — the [content-addressed cache](../formats/embeddings-and-patches.md#content-addressed-cache-key); only cache misses are embedded.
 - `embedding.augmentation` — image-space augmentation that **runs the foundation model** on augmented patches and caches each variant separately ([why it lives here](../design/05-dataset-preprocessing.md#augmentation)).
