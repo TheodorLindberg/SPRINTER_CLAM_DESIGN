@@ -24,6 +24,7 @@ code-level schemas, the Snakemake wiring, the dependency set, and a phased roadm
 | [06 · Formats & schemas](06-formats-and-schemas.md) | Every artifact (HDF5, CSV/Parquet, JSON, GeoJSON) as a concrete schema, mapped to the format specs. |
 | [07 · Reports toolkit](07-reports.md) | The static-HTML + Plotly report builder, `runs.parquet`, faceted indexes, export. |
 | [08 · Testing & roadmap](08-testing-and-roadmap.md) | Test layout, how acceptance criteria become tests, and the phased build order. |
+| [09 · Simplification analysis](09-simplification-analysis.md) | Strict critical review: what to cut/downgrade/keep, the tradeoffs, and what complexity genuinely protects the science. |
 
 ## Guiding principles for the build
 
