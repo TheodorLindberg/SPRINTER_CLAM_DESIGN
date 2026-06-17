@@ -12,6 +12,12 @@ code-level schemas, the Snakemake wiring, the dependency set, and a phased roadm
 > boundary, signature), that choice is flagged as **[build choice]** and is changeable
 > as long as the spec still holds.
 
+> **Adopted direction:** pages 01–08 describe the original, fuller plan; pages 09–11 are critical
+> reviews; **[12 · Simplification plan](12-simplification-plan.md)** records the **decided
+> simplifications** (single package, lean validation, file-level cache, no augmentation sets,
+> consolidated configs) and supersedes the heavier parts of 01–08. Read 12 for what we are actually
+> building.
+
 ## Reading order
 
 | Page | What it pins down |
@@ -27,6 +33,7 @@ code-level schemas, the Snakemake wiring, the dependency set, and a phased roadm
 | [09 · Simplification analysis](09-simplification-analysis.md) | Strict critical review: what to cut/downgrade/keep, the tradeoffs, and what complexity genuinely protects the science. |
 | [10 · Embedding cache](10-embedding-cache-analysis.md) | Focused deep-dive: drop the content-addressed store for a file-level "Snakemake is the cache" scheme; the row-vs-file impedance mismatch and its hazards. |
 | [11 · Configuration](11-configuration-analysis.md) | How configs are written, stored, and edited in daily use; separating selection from definition, deriving ids, top-level layout, early validation. |
+| [12 · Simplification plan](12-simplification-plan.md) | **The adopted cuts** and how to fill the gaps: single package, lean validation, file-level cache, no augmentation sets, ~5 configs. Supersedes the heavier parts of 01–08. |
 
 ## Guiding principles for the build
 
