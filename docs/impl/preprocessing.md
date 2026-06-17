@@ -55,15 +55,9 @@ Each `embedding_model_id` maps to a registry module exposing a loader (`load(pre
 
 To add a model: create a registry module (loader + `NORM`) and reference it by `embedding_model_id`.
 
-### Content-addressed cache
+### File-level cache
 
-The [cache key](../spec/preprocessing.md#cache-key) is computed per scan-config; a run diffs the requested coordinates against what's cached, **embeds only the delta**, copies reused rows by `(x, y)` index, and reassembles them in the requested order. That order is **canonical**: because the delta-fill stitches reused and new rows together, the final row order must be the one training/evaluation feed the model *and* the one BEAM writes as `patches/coords`, or attention stops lining up with coordinates ([BEAM invariant](../spec/evaluation.md#invariants)). For how this incremental cache stays consistent with Snakemake's file-based DAG, see [Embedding cache vs. the DAG](workflow.md#embedding-cache-vs-the-dag).
-
-### Augmentation
-
-Each configured augmentation is applied to the patch image **before** embedding, then cached under its own `augmentation_id`; `n_variants` sets how many augmented copies per patch. The proven baseline is rotation (90/180/270) and colour jitter (brightness/contrast/saturation/hue); flips and stain-space (HED) jitter slot into the same transform pipeline. The foundation model runs here, never in the training loop.
-
-Read each base patch from the slide **once**, generate all `n_variants` augmentations in memory, and embed them together — never re-open the slide per augmentation (the WSI read is the expensive part, not the transform). Each variant is still written to its own `augmentation_id` cache, so the embeddings stay independently addressable.
+Embeddings are written **one HDF5 per `(scan, source_variant, embedding_model, patch_config)`**, at a path that encodes those identifiers ([spec](../spec/preprocessing.md#cache-identity)). Snakemake tracks that file, so reuse needs no custom bookkeeping: an already-embedded configuration is skipped by the DAG, and a changed `patch_config` (size/overlap) or embedding model produces a new file. Rows are written **once, in coordinate order** — the same order training/evaluation feed the model and the one BEAM writes as `patches/coords` — so attention and coordinates line up by construction ([BEAM invariant](../spec/evaluation.md#invariants)). Because the cohort is not in the path, a scan embedded once is reused by every cohort and bundle.
 
 ## Bundle assembly
 

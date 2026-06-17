@@ -1,6 +1,6 @@
 # Cohorts — `cohorts.yaml`
 
-The project-wide registry of **cohorts** — named, possibly multi-dataset groups of patients. Within a cohort each patient has a **role**: `development` (where cross-validation happens) or `holdout` (locked away, scored once). Both [splits](seeds.md) and [bundles](preprocessing.md) derive from a cohort, so every bundle built from it shares the same folds. See [Cohorts, roles, and splits](../design/02-data-model.md#cohorts-roles-and-splits).
+The project-wide registry of **cohorts** — named, possibly multi-dataset groups of patients. Within a cohort each patient has a **role**: `development` (where cross-validation happens) or `holdout` (locked away, scored once). Both [splits](seeds.md) and [bundles](pipeline.md) derive from a cohort, so every bundle built from it shares the same folds. See [Cohorts, roles, and splits](../design/02-data-model.md#cohorts-roles-and-splits).
 
 **Key fields**
 

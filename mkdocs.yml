@@ -59,13 +59,8 @@ nav:
       - Base: configs/base.md
       - Cohorts: configs/cohorts.md
       - Split registry (seeds): configs/seeds.md
-      - WSI Transformation: configs/wsi_transformation.md
-      - Dataset Preprocessing: configs/preprocessing.md
-      - Model Experiment: configs/model_experiment.md
-      - HPO: configs/hpo.md
-      - Evaluation: configs/evaluation.md
-      - Heatmap Generation: configs/heatmaps.md
-      - Reports: configs/reports.md
+      - Pipeline: configs/pipeline.md
+      - Experiment: configs/experiment.md
   - Formats:
       - BEAM: formats/beam.md
       - Embeddings & Patches: formats/embeddings-and-patches.md

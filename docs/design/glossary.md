@@ -33,8 +33,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Biopsy axis** | The PCA longitudinal line of a biopsy (in the raw/training frame); defines the geometric quartiles. See [WSI Transformation spec](../spec/wsi-transformation.md#biopsy-axis-pca-line). |
 | **Patch** | A crop from a scan at a configured size and resolution. |
 | **Embedding** | A feature vector from a patch, produced by an embedding model. |
-| **Content-addressed cache** | Embedding store keyed by coords + size + resolution + model + variant + augmentation; only misses are embedded. |
-| **Augmentation** | Image-space transforms applied **before** embedding (runs the foundation model), cached as separate sets. |
+| **Embedding cache** | Embeddings stored as one HDF5 per scan × source variant × embedding model × patch config; the file path encodes those identifiers, so the workflow reuses an already-embedded config and a changed config writes a new file. |
 
 ## Training & evaluation
 
@@ -43,10 +42,10 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Bag** | The set of patch embeddings used as one model input instance. |
 | **Bundle** | A **prepared cohort** for one (stain · embedding · variant · patch config); every patient present, tagged by role. One cohort → many bundles. |
 | **Subset** | Which role a stage uses: `development`, `holdout`, or `all` (the union, for a final retrain). |
-| **Model experiment** | Shared `defaults` + explicit **runs** that fan out over the seed sweep ([`model_experiment.yaml`](../configs/model_experiment.md)). |
+| **Model experiment** | Shared `defaults` + explicit **runs** that fan out over the seed sweep ([experiment config](../configs/experiment.md)). |
 | **Run** | One configuration within a model experiment (`run_id`), itself fanning out over the seed sweep. |
 | **Seed sweep** | Training across all fold-seed × model-seed combinations. |
-| **HPO** | Hyperparameter optimization — a separate search ([`hpo.yaml`](../configs/hpo.md)); outputs segregated, top-N kept. |
+| **HPO** | Hyperparameter optimization — an optional `hpo` block in the [experiment config](../configs/experiment.md); outputs segregated, top-N kept. |
 | **Checkpoint** | A saved trained model (per fold). |
 | **Attention** | Per-patch importance from the MIL model: `raw`, `sigmoid`, `rank`. |
 | **Heatmap** | Attention/prediction rendered over a chosen source variant. |

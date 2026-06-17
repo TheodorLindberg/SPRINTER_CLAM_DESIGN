@@ -1,30 +1,28 @@
 # 07 · Reports toolkit
 
-The `histomil-reporting` component builds the report layer from
+The `histomil.reporting` stage builds the report layer from
 [`docs/design/11-reports.md`](../design/11-reports.md): static HTML, Plotly plots, standalone
-CSS, faceted indexes over `runs.parquet`, two-level export. It depends only on `histomil-shared`
-(plotly + jinja2 are its own deps; **no torch, no VALIS**), and reads BEAM through
-`shared.formats.beam.BeamReader` — so it never imports `histomil-evaluation`. A report is a
+CSS, faceted indexes over `runs.parquet`, two-level export. It reads BEAM through
+`shared.formats.beam.BeamReader` — so it never imports `histomil.evaluation`. A report is a
 **view, never a source of truth** — regenerable from manifests, `runs.parquet`, and BEAM, storing
 nothing new.
 
-## Where the toolkit lives (a star-constraint consequence)
+## Toolkit in `shared`, page builders in the stages
 
-`resolve_cohort` (in **preprocessing**) must emit the cohort HTML report so a cohort can be
-eyeballed *before* heavy compute — the design's requirement. If the report toolkit lived in
-`histomil-reporting`, preprocessing would have to depend on it, breaking the
-[star](01-repository-layout.md#the-dependency-star). Resolution:
+`resolve_cohort` (in **preprocessing**) emits the cohort HTML report so a cohort can be eyeballed
+*before* heavy compute. So the **toolkit primitives** live in `histomil.shared.report` (behind the
+`histomil[reports]` extra: plotly + jinja2), and any stage may emit a page with them without
+importing `histomil.reporting`:
 
 - **Toolkit primitives** (`jinja2` env, plot-card + table macros, provenance block, `reports.css`)
-  live in **`histomil.shared.report`**, behind a `histomil-shared[reports]` extra (plotly +
-  jinja2). Any component may emit a page with them.
-- **The cohort page builder** lives in **preprocessing** (it runs at cohort-resolution time) and
-  uses the shared toolkit.
-- **`histomil-reporting`** owns the cross-cutting and post-model pages (faceted experiment
-  indexes, HPO summary, per-biopsy evaluation, the cross-experiment stitch).
+  → `histomil.shared.report`.
+- **The cohort page builder** → `histomil.preprocessing.cohort_report` (runs at cohort-resolution
+  time), using the shared toolkit.
+- **`histomil.reporting`** → the cross-cutting and post-model pages (faceted experiment indexes,
+  HPO summary, per-biopsy evaluation, the cross-experiment stitch).
 
-So the toolkit is shared; *which* pages exist and *what* they plot is owned by the component that
-emits them. Below, "module" means a builder in `histomil.reporting` unless noted.
+So the toolkit is shared; *which* pages exist and *what* they plot is owned by the stage that emits
+them. Below, "module" means a builder in `histomil.reporting` unless noted.
 
 ## Toolkit (`histomil.shared.report`)
 
@@ -44,7 +42,7 @@ class Report:
 - **Tables** render with client-side sort/filter + CSV/JSON export buttons **and** a link to the
   canonical backing CSV/Parquet (full precision) at a stable path — the two-level export the docs
   require, so an article grabs the real artifact, not a scraped table.
-- **`components/reporting/assets/reports.css`** is the one standalone stylesheet (no
+- **`histomil/shared/report/assets/reports.css`** is the one standalone stylesheet (no
   MkDocs/Material dependency); mirrors the repo's existing `report_assets/`.
 - **Provenance block** on every page: config hash, git commit, membership hash, seeds — from
   `shared.provenance`.

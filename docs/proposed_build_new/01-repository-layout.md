@@ -1,179 +1,121 @@
 # 01 · Repository layout
 
-The repo is a **uv workspace**: each of the six stages plus reporting is its own installable
-distribution under `components/`, every one depending on a single `histomil-shared` package and
-never on a sibling. Each component owns its code, its configs, its Snakemake rules, and its
-tests, so it versions and updates independently. A thin top-level `workflow/` includes each
-component's rules into one chained DAG. Nothing computes from the directory tree
-([principle 2](README.md#guiding-principles-for-the-build)); this layout is for humans, packaging,
-and independent release.
+The build is **one installable Python package** (`histomil`) whose top-level submodules are the
+stages, sharing a `histomil.shared` foundation. Stage-to-stage import boundaries are enforced
+mechanically by `import-linter` (a stage may import `shared`, never a sibling stage). A thin
+`workflow/` wires the stages into one Snakemake DAG. Configs live in a single top-level `config/`
+tree (user-facing data, not code). Nothing computes from the directory tree
+([principle 2](README.md#guiding-principles-for-the-build)); this layout is for humans and packaging.
 
 ```text
-histo-mil/                              # uv workspace root (currently `design_docs/`)
-├─ pyproject.toml                       # [tool.uv.workspace] members = ["components/*"] — see 02
-├─ uv.lock                              # ONE shared lock across all components
+histo-mil/                              # repo root (currently `design_docs/`)
+├─ pyproject.toml                       # ONE package; extras: wsi, register, embed, train, reports, all — see 02
+├─ uv.lock
 ├─ README.md  CLAUDE.md
-├─ docs/                                # the design docs (unchanged, authoritative)
+├─ docs/                                # the design docs (authoritative)
 ├─ proposed_build/                      # this plan
 │
-├─ components/                          # one installable distribution per box below
+├─ src/histomil/                        # the one package
+│  ├─ __init__.py
+│  ├─ cli.py                            # one Typer app: `histomil <stage> <cmd>`
 │  │
-│  ├─ shared/                           # histomil-shared  →  histomil.shared
-│  │  ├─ pyproject.toml                 # the one dependency every other component declares
-│  │  ├─ src/histomil/shared/
-│  │  │  ├─ config.py                   # pydantic models + base+stage layering loader
-│  │  │  ├─ ids.py                      # build/parse scan_id, bag_id, bundle_id
-│  │  │  ├─ paths.py                    # roots → concrete paths (the only path authority)
-│  │  │  ├─ provenance.py  hashing.py  logging.py
-│  │  │  ├─ io/                         # typed IO: h5.py geojson.py tables.py wsi.py
-│  │  │  ├─ schemas/                    # executable contracts (pydantic + pandera) — see 06
-│  │  │  │   manifest.py labels.py membership.py folds.py bundle.py transform.py axis.py runs.py
-│  │  │  ├─ formats/                    # cross-component binary formats
-│  │  │  │   beam.py                    # BEAM read/write (written by eval, read by heatmaps+reports)
-│  │  │  │   outline.py                 # polygon-array read/write
-│  │  │  ├─ report/                     # report TOOLKIT (extra: plotly, jinja2) — see 07
-│  │  │  │   toolkit.py  assets/reports.css   # macros + provenance block + standalone CSS
-│  │  │  └─ models/                     # model DEFINITIONS shared by preprocess/train/eval
-│  │  │     ├─ embedding/               # registry: id → (load(pretrained), NORM)
-│  │  │     │   __init__.py base.py uni2_h.py conch.py gigapath.py tenpercent_resnet18.py
-│  │  │     └─ mil/                     # base.py clam.py non_clam.py regression.py
-│  │  ├─ config/                        # SHARED config: roots + registries
-│  │  │   base.yaml  cohorts.yaml  seeds.yaml
-│  │  └─ tests/
+│  ├─ shared/                           # the foundation every stage imports (see 03)
+│  │  ├─ config.py                      # pydantic models + base+stage layering loader
+│  │  ├─ manifest.py                    # scan-manifest pydantic model + validator
+│  │  ├─ ids.py                         # build/parse scan_id, bag_id, bundle_id
+│  │  ├─ paths.py                       # roots → concrete paths (the only path authority)
+│  │  ├─ checks.py                      # leakage-critical dataframe invariants (assert functions)
+│  │  ├─ provenance.py  hashing.py  logging.py
+│  │  ├─ io/                            # typed IO: h5.py geojson.py tables.py wsi.py
+│  │  ├─ formats/                       # cross-stage binary formats: beam.py outline.py
+│  │  ├─ report/                        # report toolkit: toolkit.py assets/reports.css
+│  │  └─ models/                        # model DEFINITIONS shared by preprocess/train/eval
+│  │     ├─ embedding/                  # registry: id → (load(pretrained), NORM)
+│  │     │   __init__.py base.py uni2_h.py conch.py gigapath.py tenpercent_resnet18.py
+│  │     └─ mil/                        # base.py clam.py non_clam.py regression.py
 │  │
-│  ├─ wsi_transformation/               # histomil-wsi-transformation → histomil.wsi_transformation
-│  │  ├─ pyproject.toml                 # deps: histomil-shared, valis-wsi, opencv, scikit-image
-│  │  ├─ src/histomil/wsi_transformation/
-│  │  │   register.py outlines.py intersection.py biopsy_axis.py qc.py cli.py
-│  │  ├─ config/wsi_transformation.yaml
-│  │  ├─ workflow/rules.smk             # rules: register, biopsy_axis
-│  │  └─ tests/
-│  │
-│  ├─ preprocessing/                    # histomil-preprocessing → histomil.preprocessing
-│  │  ├─ pyproject.toml                 # deps: histomil-shared, torch, timm, huggingface_hub,
-│  │  │                                 #       openslide-python, tifffile, zarr
-│  │  ├─ src/histomil/preprocessing/
-│  │  │   cohort.py labels.py patching.py embed.py cache.py bundle.py cli.py
-│  │  │   cohort_report.py             # cohort HTML page, built via shared.report toolkit
-│  │  ├─ config/preprocessing.yaml
-│  │  ├─ workflow/rules.smk             # resolve_cohort, derive_labels, patch_coords, embed, assemble_bundle
-│  │  └─ tests/
-│  │
-│  ├─ training/                         # histomil-training → histomil.training
-│  │  ├─ pyproject.toml                 # deps: histomil-shared, torch, scikit-learn, optuna
-│  │  ├─ src/histomil/training/
-│  │  │   folds.py trainer.py balancing.py bagstore.py runrecord.py aggregate.py hpo.py cli.py
-│  │  ├─ config/                        # model_experiment.yaml  hpo.yaml
-│  │  ├─ workflow/rules.smk             # generate_folds, train_run, aggregate_runs, hpo
-│  │  └─ tests/
-│  │
-│  ├─ evaluation/                       # histomil-evaluation → histomil.evaluation
-│  │  ├─ pyproject.toml                 # deps: histomil-shared, torch
-│  │  ├─ src/histomil/evaluation/
-│  │  │   routing.py infer.py aggregate.py cli.py     # BEAM read/write itself is in shared.formats
-│  │  ├─ config/evaluation.yaml
-│  │  ├─ workflow/rules.smk             # infer, aggregate_beam
-│  │  └─ tests/
-│  │
-│  ├─ heatmaps/                         # histomil-heatmaps → histomil.heatmaps
-│  │  ├─ pyproject.toml                 # deps: histomil-shared, matplotlib, opencv, shapely
-│  │  ├─ src/histomil/heatmaps/
-│  │  │   warp.py render.py geojson.py cli.py
-│  │  ├─ config/heatmaps.yaml
-│  │  ├─ workflow/rules.smk             # heatmap
-│  │  └─ tests/
-│  │
-│  └─ reporting/                        # histomil-reporting → histomil.reporting
-│     ├─ pyproject.toml                 # deps: histomil-shared[reports]  (plotly, jinja2 via shared)
-│     ├─ src/histomil/reporting/        # PAGE BUILDERS (toolkit itself is in shared.report)
-│     │   datasets.py splits.py experiments.py hpo.py evaluation.py index.py cli.py
-│     ├─ config/reports.yaml
-│     ├─ workflow/rules.smk             # report
-│     └─ tests/
+│  ├─ wsi_transformation/               # Stage 2 — register.py outlines.py intersection.py biopsy_axis.py qc.py
+│  ├─ preprocessing/                    # Stage 3 — cohort.py cohort_report.py labels.py patching.py embed.py bundle.py
+│  ├─ training/                         # Stage 4 — folds.py trainer.py balancing.py bagstore.py runrecord.py aggregate.py hpo.py
+│  ├─ evaluation/                       # Stage 5 — routing.py infer.py aggregate.py
+│  ├─ heatmaps/                         # Stage 6 — warp.py render.py geojson.py
+│  └─ reporting/                        # datasets.py splits.py experiments.py hpo.py evaluation.py index.py
 │
-├─ workflow/                           # thin orchestration only (see 04)
-│  ├─ Snakefile                        # includes each component's rules.smk; defines `rule all`
-│  ├─ rules/common.smk                 # config load, wildcard constraints, Paths() helper
+├─ workflow/                            # thin orchestration only (see 04)
+│  ├─ Snakefile                         # includes rules/*.smk; defines `rule all`
+│  ├─ rules/                            # common.smk + one .smk per stage
 │  └─ profiles/slurm/config.yaml
 │
-├─ config/                            # OPTIONAL: per-deployment overrides layered last
-│                                     #   (the canonical defaults live in each component's config/)
+├─ config/                              # all configs, by edit cadence (design doc 10)
+│  ├─ base.yaml  cohorts.yaml  seeds.yaml
+│  ├─ pipeline.yaml                     # wsi_transformation + preprocessing + reports (sections)
+│  └─ experiments/{name}.yaml           # one file per experiment (defaults + runs + optional hpo)
 │
-├─ ingestion/                          # Stage 1 — user-written bridges (outside Snakemake)
-│  ├─ README.md                        # → spec/data-ingestion.md (the contract)
-│  └─ sahlgrenska_2018.py              # shipped reference ingester
+├─ ingestion/                           # Stage 1 — user-written bridges (outside Snakemake)
+│  ├─ README.md                         # → spec/data-ingestion.md (the contract)
+│  └─ sahlgrenska_2018.py               # shipped reference ingester
 │
-├─ containers/                         # histomil.def, build.sh — see 02
-├─ scripts/                            # run.sh (sbatch controller), prefetch_weights.py
-└─ tests/integration/                  # cross-component end-to-end on the fixture dataset
+├─ containers/                          # histomil.def, build.sh — see 02
+├─ scripts/                             # run.sh (sbatch controller), prefetch_weights.py
+└─ tests/                               # unit + contract (checks.py) + integration; .importlinter contract
 ```
 
-## The dependency star
+## One package, enforced boundaries
 
-```mermaid
-flowchart TD
-    SH[histomil-shared<br/>config · ids · paths · io · schemas · formats · models]
-    WT[wsi-transformation] --> SH
-    PP[preprocessing] --> SH
-    TR[training] --> SH
-    EV[evaluation] --> SH
-    HM[heatmaps] --> SH
-    RP[reporting] --> SH
-```
+There is no inter-package dependency graph to police by hand; instead an **`import-linter`
+contract** in CI encodes the rule:
 
-No arrow between two stage packages — that is the rule the workspace enforces (a stage's
-`pyproject` may list **only** `histomil-shared` among in-repo deps). Concretely:
+> `histomil.<stage>` may import `histomil.shared`; no stage module may import another stage module.
 
-- **Evaluation produces BEAM, but the BEAM reader/writer lives in `shared.formats.beam`** — so
-  heatmaps and reporting read BEAM without importing `histomil-evaluation`.
-- **MIL heads live in `shared.models.mil`** — so `evaluation` reconstructs the architecture to
-  load a checkpoint without importing `histomil-training`.
-- **The bundle/coords/embedding schemas live in `shared.schemas` + `shared.io`** — so training
-  and evaluation read what preprocessing wrote, against one contract, with no cross-dep.
+This gives the separation-of-concerns the design wants — stages evolve independently, each is
+testable in isolation — without the overhead of separate distributions. The things that would
+otherwise tempt one stage to import another live in `shared`:
 
-If a would-be shared piece tempts two stages to depend on each other, it belongs in
-`histomil-shared`. That single rule keeps the graph a star.
-
-## What goes in `shared` vs a stage
-
-| Belongs in `histomil-shared` | Belongs in a stage package |
-|---|---|
-| Config models + the base-layering loader | The stage's own config block model |
-| Id/path construction, hashing, provenance | — |
-| Typed IO (HDF5, GeoJSON, tables, WSI reader) | — |
-| Schemas + binary **format** read/write (incl. BEAM, outline) | The logic that *fills* a format |
-| Model **definitions** (embedding registry, MIL heads) | Training loop, inference loop |
-| Report **toolkit** (macros, CSS, provenance block) | *Which* pages exist + *what* they plot |
-| The fixture-free contract test helpers | The stage's algorithm + its own tests |
+- **BEAM read/write** in `shared.formats.beam` — so heatmaps and reporting read evaluation's output
+  without importing `histomil.evaluation`.
+- **MIL heads** in `shared.models.mil` — so evaluation reconstructs a checkpoint's architecture
+  without importing `histomil.training`.
+- **Schemas + the embedding registry + the WSI reader** in `shared` — so training/evaluation read
+  what preprocessing wrote against one contract.
+- **The report toolkit** in `shared.report` — so `preprocessing.cohort_report` emits the cohort
+  page with the same macros `reporting` uses, no cross-stage import.
 
 Rule of thumb: **definitions and contracts are shared; behaviour is owned by the stage.**
 
-## Configs: per-component, with shared roots
+## What goes in `shared` vs a stage
 
-Each component owns its stage config under `components/<name>/config/`; the cross-cutting
-`base.yaml` (roots) and the registries `cohorts.yaml` / `seeds.yaml` live in
-`components/shared/config/` because they are referenced by more than one stage. Loading always
-layers `shared/config/base.yaml` first, then the component's config (base first, stage wins) —
-the rule from [`docs/design/10-configuration.md`](../design/10-configuration.md). An optional
-top-level `config/` can carry deployment overrides layered last. This is the resolved form of
-"each of these has a bunch of different configs": the configs travel with the code that reads
-them.
+| Belongs in `histomil.shared` | Belongs in a stage submodule |
+|---|---|
+| Config models + the base-layering loader; the manifest model | The stage's own config-section model |
+| Id/path construction, hashing, provenance | — |
+| Typed IO (HDF5, GeoJSON, tables, WSI reader) | — |
+| Binary **format** read/write (BEAM, outline) | The logic that *fills* a format |
+| Model **definitions** (embedding registry, MIL heads) | Training loop, inference loop |
+| Report **toolkit** (macros, CSS, provenance block) | *Which* pages exist + *what* they plot |
+| `checks.py` (leakage-critical invariants) | The stage's algorithm + its own tests |
 
-## CLI surface (per component)
+## Configs live in `config/`, not with the code
 
-Each component's `pyproject` declares one console script; Snakemake rules and humans call it.
-There is no umbrella binary, so `histomil-report` never imports torch and `histomil-train` never
-imports VALIS.
+Configs are user-facing data edited constantly, so they sit in one top-level `config/` tree
+organized by edit cadence — not scattered beside the code that reads them. Loading always layers
+`config/base.yaml` first, then the file for what's running (`pipeline.yaml` or an
+`experiments/<name>.yaml`), then any `--set` CLI overrides. The config model lives in
+`shared.config`; see the [configuration design doc](../design/10-configuration.md).
+
+## The CLI surface (one app, stage subcommands)
+
+`histomil/cli.py` is a single Typer app; each Snakemake rule is a one-line call to a subcommand, and
+every stage is independently runnable by hand:
 
 ```text
-histomil-wsi        register | biopsy-axis
-histomil-preprocess cohort | derive-labels | coords | embed | bundle
-histomil-train      folds | run | aggregate | hpo
-histomil-evaluate   infer | beam
-histomil-heatmap    render
-histomil-report     build --section ...
+histomil wsi register | biopsy-axis
+histomil preprocess cohort | derive-labels | coords | embed | bundle
+histomil train folds | run | aggregate | hpo
+histomil evaluate infer | beam
+histomil heatmap render
+histomil report build --section ...
 ```
 
 Each command parses configs via `histomil.shared.config`, resolves paths via
-`histomil.shared.paths`, and delegates to its component's modules — never the reverse, and never
-into a sibling component.
+`histomil.shared.paths`, and delegates to its stage submodule — never the reverse, and never into a
+sibling stage.

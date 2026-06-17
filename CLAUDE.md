@@ -47,7 +47,7 @@ Each scan exists as `raw` / `rigid` / `elastic`.
 - Rule: train/val/test ONLY describe folds; reserved patients are ONLY ever `holdout`, never "test". → "CV test score" vs "holdout score" are distinct.
 - Splits are over the cohort's development patients, so different stain/embedding bundles share aligned folds (a patient lacking a stain contributes no bag but keeps its fold). Membership is frozen + hashed; change → stale-splits warning.
 - **Bundle = a prepared cohort**: materializes a cohort for one (stain · embedding · variant · patch config), EVERY patient present, each bag tagged with its `role`. Role is a manifest column, NOT a separate bundle. One cohort → many bundles. Stages pick a **`subset` enum** (`development` / `holdout` / `all`) — never a list. Union = `all`. (This is the resolved answer to "train/eval on a list of cohorts" — rejected as unintuitive/leak-prone.)
-- Configs: `cohorts.yaml` (members + holdout designation → frozen hashed membership), `seeds.yaml` references `cohort:`, preprocessing `bundle:` block = prepared cohort, `model_experiment.yaml`/`evaluation.yaml` carry `subset:`. No `patient_exclusion` (lifted to the cohort's holdout role).
+- Configs: `cohorts.yaml` (members + holdout designation → frozen hashed membership), `seeds.yaml` references `cohort:`, `pipeline.yaml`'s `preprocessing.bundle` = prepared cohort, the experiment config carries `subset:` (the evaluation subset is a CLI target). No `patient_exclusion` (lifted to the cohort's holdout role).
 - **One stain per bundle for now** (one model per stain → evaluation per-bag→per-biopsy is 1:1). Multi-stain/multi-target (e.g. one model on Ki67+PSA embeddings predicting both scores) is a documented future extension — see `09-open-questions.md#stains-per-bundle`.
 - **Cohort is an actual pipeline step**: `resolve_cohort` rule (first in preprocessing, `cohort` target) freezes the hashed membership, validates (members exist, holdout clean, pooled labels comparable), and emits `results/reports/cohorts/{cohort}.html`. Runnable before heavy compute. Gates `assemble_bundle` + `generate_folds`.
 
@@ -60,7 +60,7 @@ The scan manifest (Stage 1 ingestion, IDs → WSI path) is the pipeline contract
 - Six stages, run individually, connected by Snakemake (Stage 1 ingestion is outside Snakemake — user-written bridge).
 - Folds are **NOT** generated in preprocessing — they belong to Model Training, to support the seed sweep (independent model-seed × fold-seed variation).
 - **No fitted statistics in bundles** — bundles carry raw labels/embeddings; normalization etc. is computed at training time from the training fold only. Combined with holdout patients filtered out of all folds → leakage-free.
-- Embedding reuse via **content-addressed cache** (key: coords + patch size + resolution + embedding model + source variant + augmentation).
+- Embedding reuse via a **file-level cache**: one HDF5 per (scan · source variant · embedding model · patch config); the file path is the key, so Snakemake tracks reuse directly (no separate store). Reused across cohorts since the cohort isn't in the path.
 - Pipeline reads a **manifest** (IDs → paths), never the on-disk layout — so folder vs flat ingestion both work.
 
 ## Storage formats
@@ -73,26 +73,26 @@ Binary is the source of truth; GeoJSON is the TissUUmaps view (pipeline never co
 ## Reports & experiments
 
 - Reports = regenerable **view** over manifests/`runs.parquet`/BEAM; static HTML, **Plotly** interactive plots, standalone `report_assets/reports.css` (no MkDocs dep), hybrid layout (self-contained run folders + index files).
-- **Runs are generated, not configured.** `model_experiment.yaml` = shared `defaults` + explicit `runs` (each a run_id overriding e.g. bundle or hyperparameters), each fanning out over the seed sweep. **HPO is a SEPARATE config** (`hpo.yaml`) that fans out into trials. Config count = O(experiments), not O(models). Each run → a run record → aggregated into `results/runs.parquet` (master tagged, exportable table). Reports index by **tags** (faceted: model experiment/bundle/architecture/stain), never by name-parsing.
+- **Runs are generated, not configured.** The experiment config (one file per experiment) = shared `defaults` + explicit `runs` (each a run_id overriding e.g. bundle or hyperparameters), each fanning out over the seed sweep. **HPO is an optional `hpo` block** in the same experiment file that fans out into trials. Config count = O(experiments), not O(models). Each run → a run record → aggregated into `results/runs.parquet` (master tagged, exportable table). Reports index by **tags** (faceted: model experiment/bundle/architecture/stain), never by name-parsing.
 - **HPO is segregated**: under `results/experiments/{exp}/hpo/` with its own index; `keep_checkpoints: all|top_n|none` (default top_n). Seed-sweep models live under `sweep/` (the keepers). Workflow: HPO explores → promote best N → seed sweep on them.
 - **Table export, two levels**: client-side CSV/JSON buttons + link to canonical backing artifact (CSV/Parquet) at a stable path for the user's own Python scripts.
 - High-value pre-model reports (independent of training, build first): fold×cohort composition, dataset distribution, cohort composition.
-- Design: `docs/design/11-reports.md`; config: `docs/configs/reports.yaml`.
+- Design: `docs/design/11-reports.md`; config: the `reports` section of `pipeline.yaml`.
 
 ## Configuration
 
 - **`base.yaml`** holds shared roots (raw/normalized/processed/bundles/results) + registry paths + rarely-edited settings; layered UNDER every stage config (base first, stage overrides win). Changing an output path = one edit.
-Draft configs in `docs/configs/` (base, cohorts, seeds, wsi_transformation, preprocessing, model_experiment, hpo, evaluation, heatmaps, reports). All marked DRAFT. Each has a wrapper md page that embeds the YAML via pymdownx.snippets; listed under a collapsible Configuration nav menu. Overview in `docs/design/10-configuration.md`. Per-file (not monolithic) because stages run individually; single merged config left as an open alternative.
+Draft configs in `docs/configs/` (base, cohorts, seeds, pipeline, experiment). All marked DRAFT. Each has a wrapper md page that embeds the YAML via pymdownx.snippets; listed under a collapsible Configuration nav menu. Overview in `docs/design/10-configuration.md`. Organized by edit cadence: infra (`base.yaml`), append-only registries (`cohorts.yaml`/`seeds.yaml`), stage defaults (`pipeline.yaml` = `wsi_transformation` + `preprocessing` + `reports` sections), and one file per experiment (`experiments/<name>.yaml` = defaults + runs + optional `hpo` block). Selection (which dataset/model/subset/BEAM) is a CLI target, not config.
 - **`seeds.yaml` is a project-wide named registry**: top-level `seed_sets` maps names → split configs (each references a `cohort`); a run picks one via `seed_set:`. Models sharing a name get identical splits.
-- **Label balancing** lives in `model_experiment.yaml` (per fold, train split only).
-- **Augmentation lives in PREPROCESSING, not training** — histology augmentation (flips/rotations/stain jitter) changes pixels, so it runs the embedding foundation model on augmented patches and caches each variant as its own embedding set (augmentation_id is part of the cache key). Training only picks whether to sample them (`use_augmented_embeddings`).
+- **Label balancing** lives in the experiment config (per fold, train split only).
+- **No augmentation in v1.** Foundation-model embeddings are largely invariant to histology transforms, so augmentation isn't built; if added later it lives in preprocessing (runs the foundation model on augmented patches). See `docs/design/09-open-questions.md#augmentation`.
 
 ## Six stages
 
 1. Data Ingestion (outside Snakemake) — normalize raw → standard format + per-biopsy label CSV
 2. WSI Transformation — registration (raw/rigid/elastic) + tissue outlines + cross-stain intersection
-3. Dataset Preprocessing — **cohort resolution** (resolve_cohort: freeze+validate+report), label processing, patch generation, patch embedding (+cache), bundle prep (= prepared cohort)
-4. Model Training — fold generation (split registry `seeds.yaml`), model experiment (defaults + runs), seed sweep; HPO separate + segregated
+3. Dataset Preprocessing — **cohort resolution** (resolve_cohort: freeze+validate+report), label processing, patch generation, patch embedding (+ file-level cache), bundle prep (= prepared cohort)
+4. Model Training — fold generation (split registry `seeds.yaml`), experiment config (defaults + runs), seed sweep; HPO optional block, segregated outputs
 5. Evaluation — inference, per-biopsy aggregation into BEAM files, reports
 6. Heatmap Generation — attention overlays (PNG) + TissUUmaps GeoJSON. NOTE: attention is in the raw frame, so coords must be pushed through the variant's transform matrix to overlay on rigid/elastic.
 
@@ -104,4 +104,4 @@ Draft configs in `docs/configs/` (base, cohorts, seeds, wsi_transformation, prep
 
 Design: `01-overview` · `02-data-model` · `glossary` (all terms + abbreviations) · `03-data-ingestion` · `04-wsi-transformation` · `05-dataset-preprocessing` · `06-model-training` · `07-evaluation` · `08-heatmaps` · `09-open-questions` · `10-configuration` · `11-reports` · `12-appendix` (design decisions / rationale)
 Formats: `docs/formats/{beam,embeddings-and-patches,outlines}.md`
-Configs: `docs/configs/*.yaml` (drafts): base, cohorts, seeds, wsi_transformation, preprocessing, model_experiment, hpo, evaluation, heatmaps, reports
+Configs: `docs/configs/*.yaml` (drafts): base, cohorts, seeds, pipeline (wsi_transformation + preprocessing + reports), experiment (defaults + runs + optional hpo)

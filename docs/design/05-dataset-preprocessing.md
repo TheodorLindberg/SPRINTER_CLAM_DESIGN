@@ -43,22 +43,11 @@ Patch **coordinates** are stored as binary HDF5 arrays (not pixel crops — pixe
 
 Embeds the patches with the selected embedding model.
 
-Snakemake cannot track individual patches — there are far too many — but we want to avoid recomputing embeddings across overlap settings, since a 50% overlap grid shares all of a no-overlap grid's patch positions.
+Snakemake cannot track individual patches — there are far too many — but it doesn't need to: embeddings are cached **per scan, per configuration**.
 
-### Content-addressed embedding cache
+### Embedding cache
 
-Each embedding is keyed by what it was computed from — patch coordinates, patch size, resolution, embedding model, and source variant — and stored per scan as binary HDF5. A run looks each patch up by key and only embeds the misses, so:
-
-- Different overlap settings simply produce different coordinate sets.
-- Shared positions reuse cached embeddings automatically.
-
-This avoids relying on one grid being a structural subset of another, which breaks under outline cropping, edge handling, or a shifted grid origin. This is the recommended approach; alternatives are weighed in [Open Questions](09-open-questions.md#embedding-reuse-strategy).
-
-### Augmentation
-
-Data augmentation belongs to this stage, not training, because meaningful histology augmentation (flips, rotations, stain/color jitter) changes the pixels the embedding model sees — so each augmented patch must be run through the **foundation model** and embedded.
-
-Augmented variants are embedded and cached as **their own embedding sets** (the augmentation variant is part of the cache key). Training then chooses whether to sample them. This keeps the expensive foundation-model work out of the training loop and reuses augmented embeddings across runs.
+Embeddings for a scan are stored as binary HDF5, **one file per `(scan, source variant, embedding model, patch config)`**. The file **path encodes those identifiers**, so the workflow tracks it directly: a configuration that has already been embedded is skipped, and changing the patch config (size/overlap) or model writes a new file. Because the cohort is not part of the path, an embedding computed once is reused automatically by every cohort and bundle that needs it. → [Embeddings & patches spec](../formats/embeddings-and-patches.md).
 
 ---
 

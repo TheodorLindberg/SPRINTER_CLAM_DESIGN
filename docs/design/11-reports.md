@@ -1,6 +1,6 @@
 # Reports
 
-Reports are the human-facing window onto what the pipeline produces — who is in which cohort, how the folds were split, how each model scored — as browsable HTML pages with interactive plots and sortable tables. They are configured by [`reports.yaml`](../configs/reports.md).
+Reports are the human-facing window onto what the pipeline produces — who is in which cohort, how the folds were split, how each model scored — as browsable HTML pages with interactive plots and sortable tables. They are configured by the `reports` section of [`pipeline.yaml`](../configs/pipeline.md).
 
 ## Principle: a report is a view, never a source of truth
 
@@ -18,7 +18,7 @@ Every report is regenerated from artifacts the pipeline already produces — man
 
 ## The model-experiment umbrella and the runs index
 
-Runs come from a [model experiment](../configs/model_experiment.md) (shared defaults + explicit runs, each fanning out over the seed sweep) and from [HPO](../configs/hpo.md) (a search that fans out into trials) — so config count stays O(experiments), never O(models).
+Runs come from an [experiment config](../configs/experiment.md) (shared defaults + explicit runs, each fanning out over the seed sweep; an optional `hpo` block fans out into trials) — so config count stays O(experiments), never O(models).
 
 ```
 Model experiment   (named umbrella, e.g. ki67_stain_comparison — may span many bundles)
@@ -47,7 +47,7 @@ results/                          # roots.results (base.yaml)
           checkpoints/  metrics/  report/index.html
       hpo/                        # SEGREGATED — rarely inspected
         index.html                # Optuna plots + exportable trials table
-        trials/{trial_id}/        # kept per reports.yaml keep_checkpoints (all|top_n|none)
+        trials/{trial_id}/        # kept per reports.hpo.keep_checkpoints (all|top_n|none)
 ```
 
 ### HPO is kept apart from the seed sweep
@@ -55,7 +55,7 @@ results/                          # roots.results (base.yaml)
 HPO can produce hundreds of models you'll rarely revisit, while the **seed-sweep** models are the ones you actually keep and inspect. So:
 
 - HPO models and report live under `experiments/{exp}/hpo/`, with their **own index** — separate from `sweep/`.
-- `reports.yaml → hpo.keep_checkpoints` controls storage (`all` / `top_n` / `none`); by default only the **top-N** HPO checkpoints are retained.
+- `reports.hpo.keep_checkpoints` (in `pipeline.yaml`) controls storage (`all` / `top_n` / `none`); by default only the **top-N** HPO checkpoints are retained.
 - Workflow: HPO explores → promote the best N hyperparameters → run a **seed sweep** on them. The sweep output is the durable result; HPO is exploratory scaffolding.
 - The HPO index is a **summary**, not hundreds of pages: optimization-history, parallel-coordinates, and param-importance plots plus a sortable trials table; full detail pages only for the promoted top-N.
 

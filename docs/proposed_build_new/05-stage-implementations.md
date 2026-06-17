@@ -10,16 +10,16 @@ largely as-is, **[new]** = build fresh, **[adapt]** = port the core, rebuild the
 
 ---
 
-Module paths use the component namespaces: `histomil.<component>.<module>`, with shared
-definitions/contracts under `histomil.shared.*`.
+Module paths are `histomil.<stage>.<module>`, with shared definitions/contracts under
+`histomil.shared.*`.
 
 ## Stage 1 · Ingestion bridge (`ingestion/`)
 
-Outside Snakemake and outside the workspace. A per-dataset script emits the scan files + a
+Outside Snakemake. A per-dataset script emits the scan files + a
 hierarchical scan manifest (YAML/JSON) + optional label tables, conforming to
 [`spec/data-ingestion.md`](../spec/data-ingestion.md). The build ships
 `ingestion/sahlgrenska_2018.py` as the reference and a shared
-`histomil.shared.schemas.manifest.validate(path)` the bridge calls to self-check. The pipeline
+`histomil.shared.manifest.validate(path)` the bridge calls to self-check. The pipeline
 reads the manifest, never the layout.
 
 ---
@@ -95,7 +95,7 @@ intersection with the tissue outline covers enough area; tag each with its biops
 coords HDF5 ([06 schema](06-formats-and-schemas.md#coords)). Coordinates are level-0; pixel reads
 happen at the configured `level`/`mpp`.
 
-### `embed.py` **[port]** + `cache.py` **[adapt]** — `embed`
+### `embed.py` **[port]** — `embed`
 
 The ported embedding engine: the `histomil.shared.models.embedding` registry loads
 `(load(pretrained), NORM)`; `shared.io.wsi.WSIReader` reads patches in batches at the target mpp;
@@ -105,14 +105,10 @@ apply the model's **fixed** normalization
 - **Keep the GPU fed**: CPU worker pool decodes+normalizes into a queue while the GPU consumes
   large pinned batches; order reads along the native tile grid (or read one region, sub-crop
   several patches). The bottleneck is patch decode, not the forward.
-- **Content-addressed cache** (`cache.py`): `shared.hashing.cache_key` per row; diff requested
-  coords vs cached, embed only the delta, copy reused rows by `(x,y)`, reassemble in **canonical
-  order** (the order training/eval feed the model and BEAM writes). The cache is a separate
-  per-position store; the per-`patch_config` file Snakemake tracks is assembled from hits +
-  fresh misses — see [04 · cache vs. DAG](04-snakemake-integration.md#embedding-cache-vs-the-dag).
-- **Augmentation** ([preprocessing, not training](../design/06-model-training.md#augmentation)):
-  read each base patch once, generate all `n_variants` in memory, embed together; cache each under
-  its own `augmentation_id`.
+- **File-level cache**: write one HDF5 per `(scan, variant, embedding_model, patch_config)` at a
+  path that encodes those identifiers, rows in coordinate order. The path is the cache: Snakemake
+  skips a configuration whose file exists and rebuilds only changed ones — see
+  [04 · file-level cache](04-snakemake-integration.md#file-level-embedding-cache).
 
 ### `bundle.py` **[new]** — `assemble_bundle`
 
@@ -122,7 +118,7 @@ write a manifest row. Emit `manifest.csv`, `labels.csv` (long form; absent if la
 `metadata.json` (cohort_id, membership_hash, embedding_model_id, patch_config, source_variant +
 forwarded scan-manifest metadata by level). **No fitted statistics** — the writer has no field
 for them ([principle 4](README.md#guiding-principles-for-the-build)). Bundle schema in
-[06](06-formats-and-schemas.md#tabular-schemas-pandera).
+[06](06-formats-and-schemas.md#tabular-contracts-checkspy).
 
 ---
 
@@ -207,7 +203,7 @@ is what keeps eval off the I/O floor. Validate run stain == bundle stain first.
 De-normalize each checkpoint's prediction with its own stored stats **before** combining
 (holdout = mean across checkpoints; dev/all = single checkpoint). Write one
 `{biopsy_id}__{run_id}.beam.h5` via `histomil.shared.formats.beam.BeamWriter` — the writer lives
-in `shared` so heatmaps and reporting read BEAM without importing `histomil-evaluation`
+in `shared` so heatmaps and reporting read BEAM without importing `histomil.evaluation`
 ([06 BEAM schema](06-formats-and-schemas.md#beam-sharedformatsbeam)): provenance
 attrs, `patches/coords` in the **raw frame** in model-fed order, prediction, attention transforms
 (`raw`/`sigmoid`/`rank` — **only** for attention models, never faked zeros), outline + quartiles,

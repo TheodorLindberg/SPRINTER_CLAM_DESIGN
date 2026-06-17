@@ -1,30 +1,29 @@
 # 06 · Formats & schemas
 
-Every artifact in the pipeline as a concrete, executable schema, mapped to its format spec.
-**All definitions live in `histomil-shared`** — that is precisely what lets the producing and
-consuming stage packages stay independent (no cross-dep) while reading/writing against one
-contract. Tabular artifacts get a `pandera` schema in `histomil.shared.schemas`; hierarchical
-configs/manifests get a `pydantic` model; binary artifacts get a typed reader/writer in
-`histomil.shared.io` (generic) or `histomil.shared.formats` (named cross-component formats). The
-rule: a format is defined **once**, and both the producer and the test suite import that one
-definition.
+Every artifact in the pipeline as a concrete, executable contract, mapped to its format spec.
+**All definitions live in `histomil.shared`** — that is what lets the producing and consuming
+stages stay independent while reading/writing against one contract. Hierarchical
+configs/manifests get a `pydantic` model; tabular invariants get an explicit assertion function in
+`histomil.shared.checks`; binary artifacts get a typed reader/writer in `histomil.shared.io`
+(generic) or `histomil.shared.formats` (named cross-stage formats). The rule: a format is defined
+**once**, and both the producer and the test suite import that one definition.
 
 | Artifact | Format | Definition (`histomil.shared.…`) | Spec |
 |---|---|---|---|
-| Scan manifest | YAML/JSON | `schemas.manifest` (pydantic) | [data-ingestion](../spec/data-ingestion.md) |
-| Raw label tables | CSV/Parquet | `schemas.labels` | [data-ingestion](../spec/data-ingestion.md#label-tables-optional) |
-| Derived labels (long) | CSV | `schemas.labels` | [preprocessing](../spec/preprocessing.md#bundle-a-prepared-cohort) |
-| `membership.csv` | CSV | `schemas.membership` | [preprocessing](../spec/preprocessing.md#cohort-resolution-per-cohort) |
+| Scan manifest | YAML/JSON | `manifest` (pydantic) | [data-ingestion](../spec/data-ingestion.md) |
+| Raw label tables | CSV/Parquet | `checks.labels` + `io.tables` | [data-ingestion](../spec/data-ingestion.md#label-tables-optional) |
+| Derived labels (long) | CSV | `checks.labels` | [preprocessing](../spec/preprocessing.md#bundle-a-prepared-cohort) |
+| `membership.csv` | CSV | `checks.membership` | [preprocessing](../spec/preprocessing.md#cohort-resolution-per-cohort) |
 | Patch coords | HDF5 | `io.h5` | [embeddings-and-patches](../formats/embeddings-and-patches.md) |
 | Embeddings | HDF5 | `io.h5` | [embeddings-and-patches](../formats/embeddings-and-patches.md) |
 | Outlines | polygon array + GeoJSON | `formats.outline` (+ `io.geojson`) | [outlines](../formats/outlines.md) |
-| Transform | JSON | `schemas.transform` | [wsi-transformation](../spec/wsi-transformation.md#artifacts-per-scan-per-variant) |
-| Biopsy axis | JSON | `schemas.axis` | [wsi-transformation](../spec/wsi-transformation.md#biopsy-axis-pca-line) |
-| Bundle manifest | CSV | `schemas.bundle` | [preprocessing](../spec/preprocessing.md#bundle-a-prepared-cohort) |
-| Bundle metadata | JSON | `schemas.bundle` | [preprocessing](../spec/preprocessing.md) |
-| Folds | CSV | `schemas.folds` | [training](../spec/training.md#fold-assignment-the-generate_folds-rule) |
-| Run record | JSON | `schemas.runs` | [training](../spec/training.md#run-record-runjson-one-per-run) |
-| `runs.parquet` | Parquet | `schemas.runs` | [training](../spec/training.md) / [reports](../design/11-reports.md) |
+| Transform | JSON | `config` (pydantic) | [wsi-transformation](../spec/wsi-transformation.md#artifacts-per-scan-per-variant) |
+| Biopsy axis | JSON | `config` (pydantic) | [wsi-transformation](../spec/wsi-transformation.md#biopsy-axis-pca-line) |
+| Bundle manifest | CSV | `checks.bundle` | [preprocessing](../spec/preprocessing.md#bundle-a-prepared-cohort) |
+| Bundle metadata | JSON | `config` (pydantic) | [preprocessing](../spec/preprocessing.md) |
+| Folds | CSV | `checks.folds` | [training](../spec/training.md#fold-assignment-the-generate_folds-rule) |
+| Run record | JSON | `config` (pydantic) | [training](../spec/training.md#run-record-runjson-one-per-run) |
+| `runs.parquet` | Parquet | `io.tables` | [training](../spec/training.md) / [reports](../design/11-reports.md) |
 | BEAM | HDF5 | `formats.beam` | [BEAM format](../formats/beam.md) |
 | Heatmap | PNG + GeoJSON | (produced by `histomil.heatmaps`) | [heatmaps](../design/08-heatmaps.md) |
 
@@ -47,39 +46,25 @@ class Manifest(BaseModel):
     # if registration enabled, every biopsy has the reference_stain
 ```
 
-## Tabular schemas (pandera)
+## Tabular contracts (`checks.py`)
+
+The leakage-critical table invariants are explicit assertion functions in
+`histomil.shared.checks` — clearer than declarative schemas for cross-row rules, and called by
+both the producing rule and the contract tests. Column presence/dtypes are checked on read by
+`io.tables.read_table(path, columns={...})`.
 
 ```python
-# shared/schemas/membership.py
-Membership = DataFrameSchema({
-    "dataset_id": Column(str), "patient_id": Column(str),
-    "biopsy_id": Column(str), "role": Column(str, Check.isin(["development","holdout"])),
-})
-# shared/schemas/folds.py  — development patients only; holdout excluded (checked)
-Folds = DataFrameSchema({
-    "patient_id": Column(str),
-    "fold": Column(int, Check.ge(0)),
-    "split": Column(str, Check.isin(["train","val","test"])),
-})
-# shared/schemas/labels.py  — long form
-DerivedLabels = DataFrameSchema({
-    "dataset_id": Column(str), "patient_id": Column(str), "biopsy_id": Column(str),
-    "label_name": Column(str), "label_value": Column(float, nullable=True),
-    "label_type": Column(str, Check.isin(["continuous","binary","ordinal","categorical"])),
-})
-# shared/schemas/bundle.py  — manifest.csv
-BundleManifest = DataFrameSchema({
-    "bag_id": Column(str, unique=True),
-    "dataset_id": Column(str), "patient_id": Column(str), "biopsy_id": Column(str),
-    "stain": Column(str), "role": Column(str, Check.isin(["development","holdout"])),
-    "embedding_path": Column(str), "n_patches": Column(int, Check.gt(0)),
-})
+# histomil/shared/checks.py
+def check_membership(df):           # (dataset_id, patient_id, biopsy_id, role); role ∈ {development, holdout}; one role per patient
+def check_folds(df, membership):    # (patient_id, fold, split∈{train,val,test}); holdout excluded; no patient in two splits of a fold
+def check_labels(df):               # long form (dataset, patient, biopsy, label_name, label_value, label_type∈{continuous,binary,ordinal,categorical})
+def check_bundle(df):               # bag_id unique; n_patches > 0 and == embedding row count; role ∈ {development, holdout}
+def check_coords_match(emb, coords) # embedding row count + order == coords (the BEAM invariant)
 ```
 
-Cross-row invariants that a single-column schema can't express (no patient in two folds; holdout
-in no fold; `n_patches` == embedding row count; `membership_hash` matches) are `pandera`
-dataframe-level `Check`s or a `validate_*` function beside the schema — reused by the rule and
-the contract test.
+These are exactly the cross-row invariants a single-column schema couldn't express anyway (no
+patient in two folds, holdout in no fold, `n_patches` == embedding rows, `membership_hash`
+matches), so collapsing to plain functions loses nothing and removes a dependency.
 
 ## HDF5
 
@@ -96,7 +81,7 @@ coords        (N,2) int32     x,y top-left, level-0 frame
 ```text
 coords        (N,2|4) int32   matches the coord file
 embeddings    (N,D)   float32 RAW model output — no fitted normalization
-@embedding_model_id @embedding_dim @patch_size @mpp @source_variant @augmentation_id
+@embedding_model_id @embedding_dim @patch_config_id @patch_size @mpp @source_variant
 ```
 
 `shared.io.h5` enforces dtypes and the presence of every attribute on write, and refuses to
@@ -125,26 +110,26 @@ Exact layout from [`formats/beam.md`](../formats/beam.md):
 `BeamWriter` guarantees: `/attention` present **iff** architecture is attention-based (never
 zeros); `patches/coords` equal the bundle embedding coords in the same order; `prediction` in
 label units (de-normalized when `target_normalization` was on). `BeamReader` is the single entry
-point reporting and heatmaps use — they depend on `histomil-shared`, never on
-`histomil-evaluation`.
+point reporting and heatmaps use — they depend on `histomil.shared`, never on
+`histomil.evaluation`.
 
 ## JSON artifacts
 
 ```python
-# shared/schemas/transform.py
+# shared/config.py (transform model)
 class Transform(BaseModel):
     variant: Literal["rigid","elastic"]
     affine: list[list[float]]          # 3×3, raw → variant
     reference_frame_size: tuple[int,int]
     displacement_field_ref: str | None = None   # elastic only
 
-# shared/schemas/axis.py  — fields verbatim from the wsi-transformation spec
+# shared/config.py (axis model)  — fields verbatim from the wsi-transformation spec
 class BiopsyAxis(BaseModel):
     centroid: tuple[float,float]; direction: tuple[float,float]
     t_min: float; t_max: float; length_px: float; length_mm: float
     variance_ratio: float; quartile_cuts: list[float]   # len 5, monotonic
 
-# shared/schemas/runs.py — run.json (flattened into runs.parquet rows)
+# shared/config.py (runs model) — run.json (flattened into runs.parquet rows)
 class RunRecord(BaseModel):
     run_id: str; model_experiment: str; bundle_id: str; cohort_id: str
     target: str; subset: str; seed_set: str; fold_seed: int; model_seed: int

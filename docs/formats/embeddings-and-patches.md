@@ -7,12 +7,12 @@ Patch coordinates and patch embeddings are stored as binary **HDF5**, per scan. 
 ## Per-scan embedding file
 
 ```text
-{scan_id}__src-{source_variant}__emb-{embedding_model_id}.h5
+{scan_id}__src-{source_variant}__emb-{embedding_model_id}__patch-{patch_config_id}.h5
 │
 ├─ ⚙ attributes
 │     scan_id, source_variant
 │     embedding_model_id
-│     patch_size, patch_resolution
+│     patch_config_id, patch_size, patch_resolution
 │     embedding_dim
 │
 ├─ coords ················· (N, 2|4) int     x, y (, w, h) · WSI frame
@@ -21,20 +21,17 @@ Patch coordinates and patch embeddings are stored as binary **HDF5**, per scan. 
 
 ---
 
-## Content-addressed cache key
+## Cache identity (the file path)
 
-Each embedding row is addressed by everything that affects its value:
+There is no separate cache store: the **file path is the key**. One HDF5 holds the embeddings for one `(scan, source_variant, embedding_model, patch_config)`, and everything that affects an embedding's value is captured in that path:
 
-| Component | Why it's in the key |
+| Component | Why it identifies the file |
 |---|---|
-| `coords` | Different positions → different patches |
-| `patch_size` | Different crop extent |
-| `patch_resolution` | Same coords at another magnification ≠ same content |
-| `embedding_model_id` | Different encoder → different vector |
-| `source_variant` | raw / rigid / elastic differ in pixels |
-| `augmentation_id` | Augmented patch variants are embedded and cached separately |
+| `scan_id` + `source_variant` | which pixels (raw / rigid / elastic differ) |
+| `patch_config` | patch size, resolution, and overlap — the crop extent and grid |
+| `embedding_model_id` | different encoder → different vector |
 
-A run looks up by key and embeds only cache misses, so different overlap settings reuse shared positions automatically. See [the reuse decision](../design/09-open-questions.md#embedding-reuse-strategy).
+Snakemake tracks the file directly, so an already-embedded configuration is skipped and a changed one writes a new file; rows are written once in coordinate order. Reuse across cohorts is automatic because the cohort is not part of the path. See [the reuse decision](../design/09-open-questions.md#embedding-reuse-strategy).
 
 ---
 

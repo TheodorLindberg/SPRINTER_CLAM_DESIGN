@@ -35,8 +35,7 @@ Each entry: **what** we decided and **why**.
 ### Images & embeddings
 
 - **Source variants `raw`/`rigid`/`elastic`.** Training and all metrics use `raw`; registration affects **heatmaps only**. *Why:* elastic distortion changes visuals, never the reported numbers.
-- **Content-addressed embedding cache** keyed by coords + size + resolution + model + variant + augmentation. *Why:* robust reuse across overlap/stain/model combinations.
-- **Augmentation lives in preprocessing**, cached as separate embedding sets. *Why:* histology augmentation changes pixels, so it must run the foundation model — not a cheap train-time op.
+- **File-level embedding cache** — one HDF5 per scan × source variant × embedding model × patch config, tracked directly by the workflow (the path is the key). *Why:* reuse is visible to the Snakemake DAG with no separate store; an already-embedded config is skipped and reused across every cohort that needs it, and a changed config writes a new file.
 
 ### Formats
 
@@ -45,7 +44,7 @@ Each entry: **what** we decided and **why**.
 
 ### Experiments, runs, reports
 
-- **Runs are generated, not configured.** A `model_experiment` is shared defaults + explicit runs (each fanning out over the seed sweep); HPO is a separate config that fans out into trials. *Why:* config count stays O(experiments), not O(models) — HPO would otherwise mean hundreds of files.
+- **Runs are generated, not configured.** A `model_experiment` is shared defaults + explicit runs (each fanning out over the seed sweep); HPO is an optional `hpo` block in the same experiment file that fans out into trials. *Why:* config count stays O(experiments), not O(models) — HPO would otherwise mean hundreds of files.
 - **`base.yaml` holds roots.** *Why:* change an output path once, not in every stage config.
 - **HPO is segregated** (own index, top-N checkpoints kept); workflow is HPO → promote best → seed sweep. *Why:* sweep models are the keepers; HPO models are exploratory and rarely revisited.
 - **Reports are a regenerable view** over manifests / `runs.parquet` / BEAM — static HTML, Plotly, standalone CSS, faceted by tags, with two-level data export. *Why:* reproducible, archival, and the real backing artifacts stay the source of truth.

@@ -38,10 +38,6 @@ A run takes the fold assignment as input. For each fold:
 
 Emit a [run record](../spec/training.md#run-record-runjson-one-per-run) with tags, metrics, checkpoint paths, `membership_hash`, and `git_commit`; append to `runs.parquet`.
 
-### Augmented bags
-
-If `use_augmented_embeddings`, the bundle's `augmented`-tagged bags are added to the **train split only**, in their patient's fold. They never enter `val` / `test` / `holdout` — otherwise metrics would be optimistic and the split would leak.
-
 ### Label balancing
 
 Computed per fold from the train split: class weights or weighted/over/under-sampling (classification); quantile-bin balancing (regression). Never fit on val/test.
@@ -59,4 +55,4 @@ Computed per fold from the train split: class weights or weighted/over/under-sam
 
 ## HPO (separate)
 
-An Optuna study (TPE sampler) whose objective samples a point from `hpo.space` and returns the mean validation metric across a CV subset of fold seeds, optimised over `n_trials`. The best `promote_top_n` configurations are promoted into a seed sweep. Outputs go under `results/experiments/{name}/hpo/` with their own index; checkpoint retention follows `reports.yaml → hpo.keep_checkpoints`.
+An Optuna study (TPE sampler) whose objective samples a point from `hpo.space` and returns the mean validation metric across a CV subset of fold seeds, optimised over `n_trials`. The best `promote_top_n` configurations are promoted into a seed sweep. Outputs go under `results/experiments/{name}/hpo/` with their own index; checkpoint retention follows `reports.hpo.keep_checkpoints` in [`pipeline.yaml`](../configs/pipeline.md).

@@ -26,12 +26,13 @@ A brief record of what's been decided and why. The reasoning behind each is in t
 
 ### Embedding reuse strategy {#embedding-reuse-strategy}
 
-**Resolved: a content-addressed cache.** Each embedding is keyed by what it was computed from — coordinates, patch size, resolution, embedding model, source variant — and only cache misses are computed. This is robust across the full overlap × stain × model × variant space, and reuse survives outline cropping, edge handling, and shifted grid origins. Two alternatives were considered and rejected:
+**Resolved: a file-level cache.** Embeddings are stored one HDF5 per `(scan, source variant, embedding model, patch config)`, with the configuration encoded in the file path, so the Snakemake DAG tracks reuse directly: an already-embedded configuration is skipped, a changed one writes a new file, and because the cohort is not in the path, a scan embedded once is reused by every cohort and bundle. This keeps reuse visible to the workflow with no separate store and no per-row bookkeeping.
 
-| Alternative | Why not |
-|---|---|
-| Canonical fine grid + decimation | Embed once at the finest overlap ever needed, then subset for coarser grids. A reasonable fallback, but it pays the full dense cost upfront and fixes the finest grid in advance. |
-| Fixed global grid origin | Force every grid to share one origin/step so coarser grids are subsets by construction. Cheapest, but brittle — anything that perturbs the origin silently breaks reuse. |
+If a future experiment plan sweeps overlap or patch size heavily on the same scans, the cheapest robust extension is **embed once at the finest grid and decimate** for coarser grids (a pure index operation) — adopted only if that need actually appears.
+
+### Augmentation {#augmentation}
+
+**Resolved: no augmentation in the first version.** Because foundation-model embeddings are largely invariant to the usual histology transforms (flips, rotations, stain/colour jitter), augmenting pixels and re-embedding yields little signal for substantial extra storage and bookkeeping. If it is wanted later, it belongs in **preprocessing** (the transforms change the pixels the embedding model sees, so each augmented patch must run through the foundation model), embedded and stored alongside the unaugmented set, with training choosing whether to sample it — added only once a held-out uplift is demonstrated.
 
 ### Holdout leakage {#patient-exclusion-leakage}
 

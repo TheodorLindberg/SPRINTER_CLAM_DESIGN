@@ -1,6 +1,6 @@
 # Configuration
 
-The Snakemake-driven stages each take a YAML config. Since stages run individually (and increasingly often), each has its own config file rather than one monolith. Stage 1 (Data Ingestion) is outside Snakemake and user-written, so it has no config here.
+The Snakemake-driven stages take YAML configs, **layered**: `base.yaml` is always loaded first, then the file for what you're running (`--configfile base.yaml pipeline.yaml`), with later values winning. Stage 1 (Data Ingestion) is outside Snakemake and user-written, so it has no config here.
 
 The full files are shown on their own pages (under **Configuration** in the sidebar) and embedded directly from `docs/configs/` — the YAML you see *is* the file.
 
@@ -9,29 +9,24 @@ The full files are shown on their own pages (under **Configuration** in the side
 
 ## Config files
 
-| Config | Stage | Controls |
+Organized by how often they are edited, not by stage:
+
+| Config | Tier | Controls |
 |---|---|---|
-| [`base.yaml`](../configs/base.md) | all | Shared **roots** + rarely-edited settings; layered under every stage config |
-| [`cohorts.yaml`](../configs/cohorts.md) | 3 | Named cohorts (multi-dataset) + per-patient **roles**; resolved/validated/reported by `resolve_cohort` |
-| [Split registry (`seeds.yaml`)](../configs/seeds.md) | 4 | Named seed/split sets referencing a cohort; shared by all models |
-| [`wsi_transformation.yaml`](../configs/wsi_transformation.md) | 2 | Variants to produce, registration backend, outline + quartile options |
-| [`preprocessing.yaml`](../configs/preprocessing.md) | 3 | Derived labels, patching, embedding, **augmentation**, **bundle = prepared cohort** |
-| [`model_experiment.yaml`](../configs/model_experiment.md) | 4 | Shared defaults + **runs** (run_id overrides), `subset`, `seed_set`, **balancing**, sweep |
-| [`hpo.yaml`](../configs/hpo.md) | 4 | Separate hyperparameter search; segregated outputs, top-N kept |
-| [`evaluation.yaml`](../configs/evaluation.md) | 5 | Bundle + model, **subset** (holdout), attention variants, output |
-| [`heatmaps.yaml`](../configs/heatmaps.md) | 6 | Source variant, attention type, colormap, render + output options |
-| [`reports.yaml`](../configs/reports.md) | — | Plot backend, standalone CSS, **HPO segregation**, table export |
+| [`base.yaml`](../configs/base.md) | infrastructure (set once) | Shared **roots**, registry locations, `defaults` (`source_variant`, `reference_stain`), and set-once `evaluation` / `heatmaps` defaults |
+| [`cohorts.yaml`](../configs/cohorts.md) | registry (append-only) | Named cohorts (multi-dataset) + per-patient **roles**; resolved/validated/reported by `resolve_cohort` |
+| [Split registry (`seeds.yaml`)](../configs/seeds.md) | registry (append-only) | Named seed/split sets referencing a cohort; shared by all models |
+| [`pipeline.yaml`](../configs/pipeline.md) | stage defaults (occasional) | `wsi_transformation`, `preprocessing` (labels, patching, embedding, **bundle = prepared cohort**), and `reports` — as independent sections |
+| [`experiments/<name>.yaml`](../configs/experiment.md) | per experiment (frequent) | One file per experiment: shared `defaults` + explicit **runs** (`run_id` overrides, `subset`, `seed_set`, **balancing**), plus an optional **`hpo`** search block |
+
+**Selection vs. definition.** Configs hold *definitions and defaults*; *what you're running now* — which dataset to transform, which model/subset to evaluate, which BEAM to render — is a **command-line target**, not a config field. So there are no standalone evaluation/heatmap config files: their defaults live in `base.yaml`, and the selection is a CLI argument.
 
 ## Cross-cutting notes
 
-A few ideas tie the configs together:
+- **`base.yaml` holds the roots and set-once defaults.** Data roots, output paths, registry locations, and evaluation/heatmap defaults live there once; everything else layers on top and refers to the roots instead of hard-coding paths — so changing an output location is a single edit.
+- **The cohort is the root entity.** `cohorts.yaml` defines named, possibly multi-dataset patient groups; within each, every patient has a role (`development` or `holdout`). Both splits and bundles derive from a cohort. Cohorts are **append-only** — version with a new name (`..._v2`) rather than editing a frozen entry, since membership is hashed and an edit stales every split built from it.
+- **The split registry references a cohort, not a dataset.** `seeds.yaml` holds named seed/split sets; each names a cohort, and folds are computed over its development patients. A membership-hash change raises a stale-splits warning.
+- **A bundle is a prepared cohort.** `pipeline.yaml`'s `preprocessing.bundle` assembles one bundle per cohort × stain × embedding × variant, every patient present and tagged by role. Stages pick a subset (`development`, `holdout`, or `all`) — the union is `all`, never a hand-built list.
+- **An experiment is shared defaults plus explicit runs**, each fanning out over the seed sweep, so config count stays O(experiments), not O(models). A run references its `bundle` by components (cohort · stain · variant · embedding); the bundle id is derived, not hand-typed. HPO is an optional block in the same file.
 
-- **`base.yaml` holds the roots.** Output paths, data roots, and registry locations live there once. Stage configs are layered on top (base loads first, the stage's values win) and refer to the roots instead of hard-coding paths — so changing an output location is a single edit.
-- **The cohort is the root entity.** `cohorts.yaml` defines named, possibly multi-dataset patient groups, and within each, every patient has a role (`development` or `holdout`). Both splits and bundles are derived from a cohort.
-- **The split registry references a cohort, not a dataset.** `seeds.yaml` holds named seed/split configs under `seed_sets`; each names a cohort, and folds are computed over its development patients. If the cohort's frozen membership changes, the pipeline raises a stale-splits warning.
-- **A bundle is a prepared cohort.** `preprocessing.yaml` assembles one bundle per cohort × stain × embedding × variant, with every patient present and each bag tagged with its role. Stages then pick a subset (`development`, `holdout`, or `all`) — the union is `all`, never a hand-built list.
-- **`model_experiment.yaml` is shared defaults plus explicit runs**, each fanning out over the seed sweep, so the config count stays proportional to experiments, not models. HPO is a separate config with its own segregated outputs. See [Reports](11-reports.md).
-- **Augmentation lives in preprocessing, not training.** It runs the embedding model on augmented patches and caches each variant as its own embedding set; training only chooses whether to sample those sets.
-- **Balancing** lives in `model_experiment.yaml` and is applied per fold, from the training split only.
-
-A single merged `config.yaml` with per-stage sections remains a possible alternative if the per-file split proves cumbersome.
+A run's resolved config (base + pipeline/experiment + any CLI overrides) is recorded with its results, so a result stays reproducible regardless of later edits to the source files.

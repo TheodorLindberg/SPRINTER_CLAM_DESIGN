@@ -18,14 +18,13 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 | `variant` | `raw` / `rigid` / `elastic` |
 | `patch_config` | patch size · resolution · overlap |
 | `embedding_model` | embedder id |
-| `aug` | augmentation id (`none` = unaugmented) |
 | `cohort`, `bundle_id` | named cohort; prepared-cohort id |
 | `seed_set`, `fold_seed`, `model_seed` | split set + the two swept seeds |
 | `model_experiment`, `run_id` | umbrella + one run |
 
 ## Rules by stage
 
-### Stage 2 · WSI Transformation — `wsi_transformation.yaml`
+### Stage 2 · WSI Transformation — `pipeline.yaml` (`wsi_transformation`)
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
@@ -34,19 +33,19 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 
 `register` does registration **and** outlines in one rule — VALIS already segments tissue and holds the transforms, so a separate outline rule would re-derive both. `biopsy_axis` stays separate (pure geometry on the outline); it can be inlined into `register` if preferred.
 
-### Stage 3 · Dataset Preprocessing — `preprocessing.yaml`
+### Stage 3 · Dataset Preprocessing — `pipeline.yaml` (`preprocessing`)
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
 | `resolve_cohort` | cohort | `cohorts.yaml` entry + member manifests + derived labels → `processed/cohorts/{cohort}/membership.csv` (+ hash) + **validation** + `results/reports/cohorts/{cohort}.html` |
 | `derive_labels` | dataset | raw labels → `processed/{dataset}/labels_derived.csv` |
 | `patch_coords` | scan × variant × patch_config | outline + axis → `…/coords/{patch_config}/{scan}__{variant}.h5` |
-| `embed` | scan × variant × patch_config × embedding_model × aug | coords + WSI → `…/embeddings/{embedding_model}/{aug}/{scan}__{variant}__{patch_config}.h5` (content-addressed cache) |
+| `embed` | scan × variant × patch_config × embedding_model | coords + WSI → `…/embeddings/{embedding_model}/{scan}__{variant}__{patch_config}.h5` (file-level cache; the path is the key) |
 | `assemble_bundle` | bundle | embeddings + derived labels + **resolved cohort** → `bundles/{bundle_id}/` (manifest, labels, symlinks, metadata) |
 
 `resolve_cohort` is the first thing preprocessing does: it freezes membership (so the hash can detect drift), validates it, and emits the cohort report — runnable on its own (`cohort` target) before any heavy compute.
 
-### Stage 4 · Model Training — `model_experiment.yaml`, `hpo.yaml`, `seeds.yaml`
+### Stage 4 · Model Training — `experiments/<name>.yaml`, `seeds.yaml`
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
@@ -55,20 +54,20 @@ How the stages become Snakemake rules — the rules, their wildcards, dependenci
 | `aggregate_runs` | — | all `run.json` → `results/runs.parquet` |
 | `hpo` | hpo name | bundle + search space → `results/experiments/{name}/hpo/` (Optuna; segregated, top-N) |
 
-### Stage 5 · Evaluation — `evaluation.yaml`
+### Stage 5 · Evaluation — `base.yaml` defaults + CLI targets
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
 | `infer` | run (per checkpoint, patients batched) | run + bundle (subset) → per-bag predictions/attention, via [out-of-fold / ensemble checkpoint routing](../spec/evaluation.md#checkpoint-routing-the-crux) |
 | `aggregate_beam` | biopsy × run | per-bag results → `…/beam/{biopsy}__{run_id}.beam.h5` |
 
-### Stage 6 · Heatmaps — `heatmaps.yaml`
+### Stage 6 · Heatmaps — `base.yaml` defaults + CLI targets
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
 | `heatmap` | biopsy × variant | BEAM + WSI(variant) + transform + outline → `results/heatmaps/{biopsy}__{stain}.png` + `.geojson` |
 
-### Reports — `reports.yaml`
+### Reports — `pipeline.yaml` (`reports`)
 
 | Rule | Per | Inputs → Outputs |
 |---|---|---|
@@ -125,28 +124,23 @@ Some rule sets are unknown until inputs are read, so they sit behind Snakemake *
 - **Model-experiment expansion** — the `runs` list × `fold_seeds` × `model_seeds` expands into concrete `train_run` jobs.
 - **Evaluation set** — the biopsies present in a bundle determine the `aggregate_beam` jobs.
 
-## Embedding cache vs. the DAG
+## File-level embedding cache
 
-The content-addressed embedding cache (Stage 3) lets a run embed only cache misses, but Snakemake judges a per-scan embedding file by existence/mtime, **not** by which coordinates it contains. Left naive, widening overlap either looks "already done" and is skipped (stale embeddings) or triggers a full recompute (cache defeated). To keep the two consistent:
-
-- Tie the `embed` output's freshness to the **coords file**, which encodes the `patch_config`. Changing size/overlap rewrites the coords file → `embed` reruns; inside, it loads the existing cache, embeds only the **new** coordinates (delta fill), copies reused rows by `(x, y)`, and rewrites — so the rerun is cheap and correct rather than all-or-nothing.
-- Equivalently, store the cache content-addressed at the **file level** (one object per key) with the per-scan H5 as an assembled view, so reuse is visible to the DAG itself.
+Embeddings are stored one file per `(scan, variant, patch_config, embedding_model)`, with the configuration encoded in the path, so the cache **is** the DAG: Snakemake skips a configuration whose file already exists and rebuilds only the ones that changed. A changed `patch_config` is simply a new output path, and reuse across cohorts is automatic because the cohort is not part of the path.
 
 ## Job grouping (avoid the small-job explosion)
 
-The `scan × variant × patch_config × embedding_model × aug` matrix expands into many short jobs; submitting one SLURM job each would drown the scheduler in overhead. Use Snakemake **`group`** directives to pack many `patch_coords` / `embed` tasks into a single allocation (e.g. group by scan or by patient), and process several scans per worker while a GPU is already warm. The aim is a few well-sized jobs, not thousands of seconds-long ones.
+The `scan × variant × patch_config × embedding_model` matrix expands into many short jobs; submitting one SLURM job each would drown the scheduler in overhead. Use Snakemake **`group`** directives to pack many `patch_coords` / `embed` tasks into a single allocation (e.g. group by scan or by patient), and process several scans per worker while a GPU is already warm. The aim is a few well-sized jobs, not thousands of seconds-long ones.
 
 ## Configuration → rules
 
 | Config | Drives |
 |---|---|
-| `base.yaml` | roots + registries for **every** rule |
+| `base.yaml` | roots + registries + evaluation/heatmap defaults for **every** rule |
 | `cohorts.yaml` | `resolve_cohort` (validate + freeze + report) |
-| `wsi_transformation.yaml` | `register` (registration + outlines + QC PNG), `biopsy_axis` |
-| `preprocessing.yaml` | `derive_labels`, `patch_coords`, `embed`, `assemble_bundle` |
 | `seeds.yaml` | `generate_folds` |
-| `model_experiment.yaml` | `train_run`, `aggregate_runs` |
-| `hpo.yaml` | `hpo` |
-| `evaluation.yaml` | `infer`, `aggregate_beam` |
-| `heatmaps.yaml` | `heatmap` |
-| `reports.yaml` | `report` |
+| `pipeline.yaml` → `wsi_transformation` | `register` (registration + outlines + QC PNG), `biopsy_axis` |
+| `pipeline.yaml` → `preprocessing` | `derive_labels`, `patch_coords`, `embed`, `assemble_bundle` |
+| `pipeline.yaml` → `reports` | `report` |
+| `experiments/<name>.yaml` | `train_run`, `aggregate_runs`, `hpo` |
+| CLI targets + `base.yaml` defaults | `infer`, `aggregate_beam`, `heatmap` |

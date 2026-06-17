@@ -19,7 +19,7 @@ flowchart TD
 
 ## Model experiments and runs
 
-A [model experiment config](../configs/model_experiment.md) holds shared `defaults` plus an explicit list of **runs**, each a named variation (a different bundle, or different hyperparameters) with a `run_id`. Each run still **fans out over the seed sweep**. HPO is a separate config ([`hpo.yaml`](../configs/hpo.md)). Every run emits a **run record** aggregated into `runs.parquet` (see [Reports](11-reports.md)).
+An [experiment config](../configs/experiment.md) holds shared `defaults` plus an explicit list of **runs**, each a named variation (a different bundle, or different hyperparameters) with a `run_id`. Each run still **fans out over the seed sweep**. HPO is an optional `hpo` block in the same file. Every run emits a **run record** aggregated into `runs.parquet` (see [Reports](11-reports.md)).
 
 A run operates on its bundle at the **`development`** subset (or `all` for a final retrain after holdout). Folds are assigned only over `development` patients; `holdout` patients are filtered out and never enter a fold.
 
@@ -50,12 +50,12 @@ It aggregates results and emits train/test/loss plots plus a CSV (or similar) of
 
 ## Hyperparameter optimization
 
-Supports grid search and a Bayesian optimizer (e.g. Optuna / TPE), declared as a search space in its own [`hpo.yaml`](../configs/hpo.md). Keeping it separate means hundreds of trials add no extra config files.
+Supports grid search and a Bayesian optimizer (e.g. Optuna / TPE), declared as a search space in an optional `hpo` block of the [experiment config](../configs/experiment.md). Keeping HPO as one block per experiment means hundreds of trials add no extra config files.
 
 HPO is kept apart from the seed sweep, because HPO models are rarely looked at again while the sweep models are the ones you keep:
 
 - HPO outputs live under `results/experiments/{name}/hpo/` with their **own index**; the seed-sweep models live under `sweep/`, easy to find.
-- `reports.yaml → hpo.keep_checkpoints` decides storage (`all` / `top_n` / `none`); by default only the **top-N** are retained.
+- `pipeline.yaml`'s `reports.hpo.keep_checkpoints` decides storage (`all` / `top_n` / `none`); by default only the **top-N** are retained.
 - **Workflow:** HPO explores → promote the best N hyperparameters → run a **seed sweep** on them. The sweep is the durable result; HPO is exploratory.
 
 ---
@@ -90,14 +90,6 @@ Training supports correcting for imbalanced targets, configured per run:
 - **Regression** — bin the target and balance across bins (so rare high/low scores are not drowned out).
 
 Balancing is applied **per fold, from the training split only** — consistent with the [no-fitted-statistics rule](05-dataset-preprocessing.md) — so it never leaks distribution information from validation or held-out data.
-
----
-
-## Augmentation
-
-Augmentation is **not** a training concern in this pipeline. Meaningful histology augmentation (flips, rotations, stain/color jitter) changes the pixels the embedding model sees, so it must run the **foundation model** on the augmented patches — that happens in [Dataset Preprocessing](05-dataset-preprocessing.md#augmentation), where each augmented variant is embedded and cached as its own set.
-
-Training only decides **whether to sample** those augmented embedding sets (`use_augmented_embeddings` in [`model_experiment.yaml`](../configs/model_experiment.md)).
 
 ---
 

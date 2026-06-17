@@ -12,47 +12,37 @@ code-level schemas, the Snakemake wiring, the dependency set, and a phased roadm
 > boundary, signature), that choice is flagged as **[build choice]** and is changeable
 > as long as the spec still holds.
 
-> **Adopted direction:** pages 01–08 describe the original, fuller plan; pages 09–11 are critical
-> reviews; **[12 · Simplification plan](12-simplification-plan.md)** records the **decided
-> simplifications** (single package, lean validation, file-level cache, no augmentation sets,
-> consolidated configs) and supersedes the heavier parts of 01–08. Read 12 for what we are actually
-> building.
-
 ## Reading order
 
 | Page | What it pins down |
 |---|---|
 | [01 · Repository layout](01-repository-layout.md) | The full directory tree: the `histomil` package, the Snakemake workflow, configs, containers, tests. |
 | [02 · Environment & packages](02-environment-and-packages.md) | Python version, `uv`/`pyproject`, the dependency set grouped by concern, the SIF build, env vars. |
-| [03 · The shared package](03-shared-core.md) | `histomil-shared`: config layering, id/path helpers, IO, schemas, formats, model definitions, provenance — the one package every stage imports. |
+| [03 · The shared subpackage](03-shared-core.md) | `histomil.shared`: config layering, id/path helpers, IO, formats, checks, model definitions, provenance — the foundation every stage imports. |
 | [04 · Snakemake integration](04-snakemake-integration.md) | Snakefile structure, rule modules, wildcards, checkpoints, the SLURM profile, job grouping, how rules call the package. |
 | [05 · Stage implementations](05-stage-implementations.md) | Module-by-module breakdown of stages 2–6 + reports: the functions, their inputs/outputs, and the third-party engines each wraps. |
 | [06 · Formats & schemas](06-formats-and-schemas.md) | Every artifact (HDF5, CSV/Parquet, JSON, GeoJSON) as a concrete schema, mapped to the format specs. |
 | [07 · Reports toolkit](07-reports.md) | The static-HTML + Plotly report builder, `runs.parquet`, faceted indexes, export. |
 | [08 · Testing & roadmap](08-testing-and-roadmap.md) | Test layout, how acceptance criteria become tests, and the phased build order. |
-| [09 · Simplification analysis](09-simplification-analysis.md) | Strict critical review: what to cut/downgrade/keep, the tradeoffs, and what complexity genuinely protects the science. |
-| [10 · Embedding cache](10-embedding-cache-analysis.md) | Focused deep-dive: drop the content-addressed store for a file-level "Snakemake is the cache" scheme; the row-vs-file impedance mismatch and its hazards. |
-| [11 · Configuration](11-configuration-analysis.md) | How configs are written, stored, and edited in daily use; separating selection from definition, deriving ids, top-level layout, early validation. |
-| [12 · Simplification plan](12-simplification-plan.md) | **The adopted cuts** and how to fill the gaps: single package, lean validation, file-level cache, no augmentation sets, ~5 configs. Supersedes the heavier parts of 01–08. |
 
 ## Guiding principles for the build
 
 These fall directly out of the design and shape every page that follows:
 
-1. **A uv workspace of independent stage packages.** The repo is a [uv
-   workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); each of the six stages
-   plus reporting is its **own installable distribution** (`histomil-preprocessing`,
-   `histomil-training`, …) under the shared `histomil.` namespace, with its own `pyproject`,
-   its own configs, and its own Snakemake rules — so each is versioned, tested, and updated
-   independently. They depend on exactly one common package, `histomil-shared`, and never on
-   each other. Snakemake rules and each package's thin CLI are the only entry points. Stage 1
-   (ingestion) is the one exception — a user-written bridge against a published contract.
+1. **One package, enforced internal boundaries.** The repo is a single installable package
+   (`histomil`) whose top-level submodules are the six stages plus reporting, sharing a
+   `histomil.shared` foundation. An `import-linter` contract in CI enforces that a stage may
+   import `shared` but never a sibling stage — so stages evolve independently without separate
+   distributions. Snakemake rules and one Typer CLI (`histomil <stage> <cmd>`) are the only entry
+   points. Stage 1 (ingestion) is the one exception — a user-written bridge against a published
+   contract.
 2. **The manifest is the contract, not the filesystem.** Code resolves scans through the
    [scan manifest](../spec/data-ingestion.md), never by walking directories. Paths are
    computed from `roots` in `base.yaml` by one path resolver, never hard-coded.
-3. **Schemas are executable.** Every manifest/label/fold table has a `pandera` schema; every
-   config has a `pydantic` model; every binary file has a typed reader/writer. Validation is a
-   library function, reused by both the pipeline and the test suite.
+3. **Contracts are executable, lightly.** Config and the manifest are `pydantic` models;
+   leakage-critical tables are explicit assertion functions in `shared.checks`; every binary file
+   has a typed reader/writer. Each contract is one definition, reused by the pipeline and the
+   test suite.
 4. **No fitted state escapes training.** The bundle layer physically cannot write normalization
    stats (the writer has no field for them); fitting happens only inside the per-fold trainer.
 5. **Reuse the proven engines, replace the glue.** Port the old pipeline's embedding engine,
@@ -67,14 +57,12 @@ These fall directly out of the design and shape every page that follows:
 
 *(build choice — "histology MIL"; rename is a find-replace of the `histomil` prefix.)*
 
-- The repo is a **uv workspace**. Each component is a distribution named
-  `histomil-<component>` that provides the import namespace `histomil.<component>` (PEP 420
-  implicit namespace packages — no top-level `__init__.py`).
-- The common code is `histomil-shared` → `histomil.shared`.
-- Components: `histomil-wsi-transformation`, `histomil-preprocessing`, `histomil-training`,
-  `histomil-evaluation`, `histomil-heatmaps`, `histomil-reporting`, and `histomil-shared`.
-- Each component ships a console script (`histomil-preprocess`, `histomil-train`, …); there is
-  no monolithic CLI, so importing one stage never drags in another's heavy deps.
+- One package, `histomil`, with stage submodules: `histomil.wsi_transformation`,
+  `histomil.preprocessing`, `histomil.training`, `histomil.evaluation`, `histomil.heatmaps`,
+  `histomil.reporting`, on the `histomil.shared` foundation.
+- Heavy capabilities are **extras** (`histomil[wsi]`, `[register]`, `[embed]`, `[train]`,
+  `[reports]`, `[all]`), so a light environment installs only what it needs.
+- One Typer CLI with stage subcommands (`histomil preprocess …`, `histomil train …`).
 
-The dependency graph is a **star**: every component → `histomil-shared`, and no component →
-another. This is what makes "updated independently" hold.
+The import graph is a **star**: every stage → `histomil.shared`, no stage → another, enforced by
+`import-linter`. This is what makes "updated independently" hold without separate distributions.

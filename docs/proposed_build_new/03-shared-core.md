@@ -1,19 +1,19 @@
-# 03 · The shared package (`histomil-shared`)
+# 03 · The shared subpackage (`histomil.shared`)
 
-`histomil-shared` is the one distribution every stage depends on and that depends on no stage —
-the concrete form of the design's "shared files," and the center of the
-[dependency star](01-repository-layout.md#the-dependency-star). It holds **definitions and
-contracts**; behaviour stays in the stage packages. Seven areas: **config**, **identifiers**,
-**paths**, **IO**, **schemas + formats**, **model definitions**, **provenance/hashing**.
-Signatures are illustrative of the boundaries, not finished code.
+`histomil.shared` is the foundation every stage imports and that imports no stage — the concrete
+form of the design's "shared files," and what the [`import-linter`
+contract](01-repository-layout.md#one-package-enforced-boundaries) protects. It holds
+**definitions and contracts**; behaviour stays in the stage submodules. Areas: **config**,
+**manifest**, **identifiers**, **paths**, **IO + formats**, **validation/checks**, **model
+definitions**, **provenance/hashing**. Signatures are illustrative of the boundaries, not finished
+code.
 
-> The rule that decides what lands here: *if a piece would otherwise make two stage packages
-> depend on each other, it belongs in `histomil-shared`.* That single rule keeps the graph a
-> star instead of a web.
+> The rule that decides what lands here: *if a piece would otherwise make two stages import each
+> other, it belongs in `histomil.shared`.* That single rule keeps the boundary clean.
 
 ## config (`histomil.shared.config`)
 
-`base.yaml` (in `components/shared/config/`) layers **under** every stage config — the rule in
+`base.yaml` (in `config/`) layers **under** every other config — the rule in
 [`docs/design/10-configuration.md`](../design/10-configuration.md). One loader merges and
 validates into typed pydantic models.
 
@@ -32,11 +32,11 @@ def load_stage(model: type[T], base: Path, stage: Path) -> tuple[BaseConfig, T]:
     """Validate base into BaseConfig and the stage block into the stage's own model."""
 ```
 
-- Each **stage package** defines its own config model (`WsiTransformationConfig`,
+- Each **stage** defines its own config-section model (`WsiTransformationConfig`,
   `PreprocessingConfig`, …) and passes it to `load_stage` — so the shared loader knows the
   layering rule, the stage owns its schema.
-- Registries (`cohorts.yaml`, `seeds.yaml`, in `components/shared/config/`) load into
-  `CohortRegistry` / `SeedRegistry` models, used by `preprocessing` and `training` respectively.
+- Registries (`cohorts.yaml`, `seeds.yaml`, in `config/`) load into `CohortRegistry` /
+  `SeedRegistry` models, used by `preprocessing` and `training` respectively.
 - A config's content hash (`hashing.config_hash`) is recorded in provenance.
 
 ## ids (`histomil.shared.ids`)
@@ -55,17 +55,17 @@ def parse_bundle_id(s) -> BundleParts ; def parse_bag_id(s) -> BagParts   # roun
 ## paths (`histomil.shared.paths`)
 
 The single authority turning `roots` + ids into concrete paths — what makes "change an output
-path = one edit" hold. Every stage asks `Paths`, never composes strings. (Full template list as
-in the previous draft: registered TIFF, transform, outline, axis, coords, embeddings, cache
-object, membership, bundle dir, folds, run dir, runs.parquet, beam, report, debug.) Scan-level
+path = one edit" hold. Every stage asks `Paths`, never composes strings. (Template list:
+registered TIFF, transform, outline, axis, coords, embeddings (path encodes the config),
+membership, bundle dir, folds, run dir, runs.parquet, beam, report, debug.) Scan-level
 artifacts are namespaced by `dataset/patient` because `biopsy_id`/`scan_id` are unique only
 within a patient.
 
 ## io (`histomil.shared.io`) + formats (`histomil.shared.formats`)
 
 Typed readers/writers so a format spec is enforced once. **IO** = generic typed access (HDF5,
-GeoJSON, tables, WSI). **formats** = the cross-component *named* binary formats whose producer
-and consumer live in different packages:
+GeoJSON, tables, WSI). **formats** = the *named* binary formats whose producer and consumer are
+different stages:
 
 ```python
 # shared.io.h5
@@ -82,14 +82,21 @@ class BeamReader: ...
 ```
 
 Putting **BEAM** and **outline** read/write here is what lets `heatmaps` and `reporting` consume
-evaluation's output without importing `histomil-evaluation`.
+evaluation's output without importing `histomil.evaluation`.
 
-## schemas (`histomil.shared.schemas`)
+## validation: config, manifest, checks
 
-`pandera` for tables, `pydantic` for hierarchical configs/manifests — the executable contracts
-in [06](06-formats-and-schemas.md). They live in `shared` so training/evaluation validate what
-preprocessing wrote against one definition, and so the test suite imports contracts without
-heavy stage code.
+Two small, explicit things rather than a schema framework ([06](06-formats-and-schemas.md)):
+
+- **`shared.config` + `shared.manifest`** — `pydantic` models for the layered config and the scan
+  manifest (`extra='forbid'` catches typo'd keys; numeric coercion kills the YAML `1e-4` trap).
+- **`shared.checks`** — explicit assertion functions for the leakage-critical dataframe invariants
+  (no fold leakage, holdout excluded, bundle-manifest integrity, coords↔embeddings match). A plain
+  `pandas` assertion is clearer than a schema declaration for these cross-row rules, and the same
+  function is called by the producing stage and the contract tests.
+
+They live in `shared` so training/evaluation validate what preprocessing wrote against one
+definition, and the test suite imports them without heavy stage code.
 
 ## models (`histomil.shared.models`)
 
@@ -99,10 +106,9 @@ Model **definitions** (not training/inference behaviour) shared across stages:
   `preprocessing.embed`. Ported from the old pipeline's clean `_MODEL_MODULES` pattern.
 - `models/mil/` — the MIL heads (`clam`, `non_clam`, `regression`) behind a `MILModel` protocol
   (`forward(bag) -> prediction (+ attention?)`). Living here lets `evaluation` reconstruct the
-  architecture from a run record to load a checkpoint **without** importing `histomil-training`.
+  architecture from a run record to load a checkpoint **without** importing `histomil.training`.
 
-`torch` is a `shared` *extra* (`histomil-shared[torch]`), so a report-only environment installs
-`shared` without it.
+`torch` is an extra (`histomil[embed]` / `[train]`), so a report-only environment installs without it.
 
 ## provenance & hashing
 
@@ -114,19 +120,17 @@ class Provenance(BaseModel):
 def stamp() -> Provenance
 # shared.hashing
 def membership_hash(rows) -> str        # sha1 over canonical-sorted (dataset,patient,biopsy,role)
-def cache_key(coords_row, patch_size, mpp, embedding_model_id, source_variant, aug) -> str
 def config_hash(cfg) -> str
 ```
 
-`membership_hash` and `cache_key` are defined once so freeze-and-detect-drift
-([`spec/preprocessing.md`](../spec/preprocessing.md)) and the
-[content-addressed cache](../formats/embeddings-and-patches.md#content-addressed-cache-key)
-can never disagree between writer and checker.
+`membership_hash` and `config_hash` are defined once so freeze-and-detect-drift
+([`spec/preprocessing.md`](../spec/preprocessing.md)) and the resolved-config snapshot recorded
+with each run stay consistent between writer and checker.
 
 ## What `shared` deliberately excludes
 
-- No VALIS, plotly, or Optuna — those are single-stage concerns, kept out so `shared` stays
-  light and the star holds.
+- No VALIS or Optuna — those are single-stage concerns, kept out so `shared` stays light and the
+  import boundary holds.
 - No fitted statistics, ever — there is no code path here (or in the bundle writer) that
   persists a mean/std/threshold ([principle 4](README.md#guiding-principles-for-the-build)).
 - No stage *behaviour* — only the definitions and contracts those behaviours read and write.

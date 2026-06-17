@@ -28,7 +28,7 @@ A launch script submits the Snakemake **controller** to SLURM; the controller th
 ```bash
 # example — submit a named target
 sbatch scripts/run.sh <target> [configfile=config/<stage>.yaml]
-# e.g.  sbatch scripts/run.sh embeddings configfile=config/preprocessing.yaml
+# e.g.  sbatch scripts/run.sh embeddings configfile=config/pipeline.yaml
 ```
 
 Targets are the [workflow named targets](impl/workflow.md#named-targets) (`register`, `cohort`, `embeddings`, `train`, …).

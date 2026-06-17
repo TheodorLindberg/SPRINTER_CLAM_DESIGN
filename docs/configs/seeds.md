@@ -1,6 +1,6 @@
 # Split registry — `seeds.yaml`
 
-The project-wide registry of named seed/split configurations, indexed under `seed_sets`. Each set references a [cohort](cohorts.md) — folds are computed over that cohort's **development** patients, so holdout patients never enter a fold. A run picks one with `seed_set:` in [`model_experiment.yaml`](model_experiment.md); every run using the same name gets identical splits.
+The project-wide registry of named seed/split configurations, indexed under `seed_sets`. Each set references a [cohort](cohorts.md) — folds are computed over that cohort's **development** patients, so holdout patients never enter a fold. A run picks one with `seed_set:` in the [experiment config](experiment.md); every run using the same name gets identical splits.
 
 **Key fields**
 

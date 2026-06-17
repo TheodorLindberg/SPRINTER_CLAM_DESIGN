@@ -36,21 +36,17 @@ HDF5, see [Embeddings & patches](../formats/embeddings-and-patches.md). Required
 | attr `source_variant` | str | `raw` / `rigid` / `elastic` |
 | attr `quartile` | int8 `(N,)` | 1–4 from the [biopsy axis](wsi-transformation.md#biopsy-axis-pca-line); 0 = unassigned |
 
-## Embeddings (per scan · variant · model · augmentation)
+## Embeddings (per scan · variant · model · patch config)
 
 | Field | Type | Notes |
 |---|---|---|
 | `coords` | int32 `(N, 2)` | matches the coord file |
 | `embeddings` | float32 `(N, D)` | **raw** model output — no fitted normalization |
-| attr `embedding_model_id`, `embedding_dim`, `patch_size`, `mpp`, `source_variant`, `augmentation_id` | | provenance + cache key components |
+| attr `embedding_model_id`, `embedding_dim`, `patch_size`, `mpp`, `source_variant` | | provenance |
 
-### Cache key
+### Cache identity
 
-```
-key = sha1( round(coords) ∥ patch_size ∥ mpp ∥ embedding_model_id ∥ source_variant ∥ augmentation_id )
-```
-
-Per-row addressable; a run embeds only keys absent from the cache. The cache is a **separate per-position store**; the per-`patch_config` embedding file (which Snakemake tracks) is assembled from cache hits + freshly embedded misses.
+Embeddings are stored **one HDF5 per `(scan, source_variant, embedding_model, patch_config)`**, with those identifiers encoded in the file path. The Snakemake DAG tracks the file directly: an already-embedded configuration is skipped, and a changed `patch_config` or embedding model writes a new file. Rows are written once, in coordinate order. Because the cohort is not part of the path, a scan embedded once is reused by every cohort and bundle that needs it.
 
 ## Bundle (a prepared cohort)
 
@@ -76,10 +72,9 @@ Per-row addressable; a run embeds only keys absent from the cache. The cache is 
 - `metadata.membership_hash` matches the cohort's frozen membership.
 - **No fitted statistics** anywhere in the bundle (raw labels and embeddings only).
 - A label-free bundle omits `labels.csv` and downstream stages tolerate its absence.
-- Augmented embedding sets (if enabled) appear as extra bags tagged `augmented`, used in **training folds only** — never `val` / `test` / `holdout`, and always in their patient's fold (no leakage, no optimistic metrics).
 
 ## Acceptance criteria
 
 - Rebuilding a bundle from the same cohort + cache is a no-op (identical manifest + same symlink targets).
-- Changing `overlap` only adds new patch coords; shared positions reuse cached embeddings (no re-embedding).
+- Re-running with an unchanged patch config re-embeds nothing (the per-config embedding file already exists); changing the patch config writes a new embedding file without touching the old.
 - Every `development` and `holdout` patient of the cohort that has the required stain appears; patients lacking the stain are absent (logged), not errors.

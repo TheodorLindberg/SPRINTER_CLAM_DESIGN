@@ -1,18 +1,28 @@
-# Base config — DRAFT. Shared roots + rarely-edited settings.
+# Base config — DRAFT. Shared roots, registries, and rarely-edited defaults. Layered under every config.
 
 roots:
   raw:        data/raw          # raw datasets (read-only)
   normalized: data/normalized   # ingested, standardized
-  processed:  data/processed    # cached embeddings, outlines, patches
+  processed:  data/processed    # embeddings, outlines, patches (cached per config)
   bundles:    data/bundles      # prepared cohorts (bundles)
   results:    results           # runs + reports
   debug:      results/debug     # QC / method-comparison outputs; never read downstream
 
 registries:
-  cohorts: configs/cohorts.yaml
-  seeds:   configs/seeds.yaml
+  cohorts: config/cohorts.yaml
+  seeds:   config/seeds.yaml
 
 defaults:
   source_variant: raw           # training/metrics default
   reference_stain: HE           # registration reference frame; all stains register to it
 
+evaluation:                     # defaults; the model + subset to score are CLI targets
+  attention: [raw, sigmoid, rank]   # attention variants written to BEAM
+  include_embeddings: false         # store embeddings in BEAM, or reference the bundle
+
+heatmaps:                       # defaults; the BEAM(s) + underlay are CLI targets
+  source_variant: elastic       # raw | rigid | elastic (underlay alignment)
+  attention_type: rank          # rank | sigmoid | raw (rank = robust default)
+  colormap: viridis             # perceptually uniform
+  render:  { mask_non_tissue: true, draw_outline: true, scale_bar: true, caption: true }
+  outputs: { png: true, tissuumaps_geojson: true }

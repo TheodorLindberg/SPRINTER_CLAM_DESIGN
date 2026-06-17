@@ -1,0 +1,51 @@
+# Pipeline config — DRAFT. Data-prep stage defaults: WSI transformation, preprocessing, reports.
+# Loaded with base.yaml; the sections are independent, so a single stage target reads only its own.
+
+wsi_transformation:
+  variants: [raw, rigid, elastic]   # source variants to produce
+  registration:
+    method: valis                   # registration backend (reference_stain comes from base.yaml)
+  outlines:
+    tissue_method: valis            # valis | hsv_otsu — the single outline the pipeline produces & uses
+    debug_compare_methods: false    # DEBUG ONLY: also run the other method + comparison → roots.debug
+    per_stain: true
+    cross_stain_intersection: true  # from the elastic overlap; saved per scan
+    quartile_subdivision: true      # geometric split along the biopsy long axis
+    geojson_export: true            # export for TissUUmaps viewing
+
+preprocessing:
+  labels:
+    sources:                        # raw tables, merged on (dataset, patient, biopsy)
+      - { file: labels/ki67.csv,    columns: { ki67_quartiles: [q1, q2, q3, q4] } }
+      - { file: labels/gleason.csv, columns: { gleason: gleason_grade } }
+      - { file: labels/lengths.csv, columns: { biopsy_len: biopsy_length_mm, tumor_len: tumor_length_mm } }
+    derived:                        # normalized targets computed from the merged sources
+      - { name: ki67_avg,  type: continuous, from: ki67_quartiles, op: mean }
+      - { name: ki67_high, type: binary,     from: ki67_avg,       threshold: 20 }
+      - { name: gleason,   type: ordinal,    from: gleason }
+  patching:
+    patch_size: 256
+    resolution_mpp: 0.5
+    overlap: 0.0                     # stride derived from this
+  embedding:
+    model: conch                     # embedding model id (see the model registry)
+  bundle:                            # a bundle is a PREPARED COHORT (one per stain/embedding/variant)
+    cohort: prostate_combined_v1
+    stains: [HE]                     # one stain per bundle for now (multi-stain = future)
+    source_variant: raw              # raw for training/metrics
+    include_labels: true             # false for label-free evaluation bundles
+    embeddings: symlink              # symlink | copy
+
+reports:
+  plots: plotly                      # interactive, self-contained
+  css: report_assets/reports.css     # standalone stylesheet (no MkDocs dependency)
+  layout: hybrid                     # self-contained run folders + cross-linking indexes
+  hpo:    { separate_index: true, keep_checkpoints: top_n, top_n: 3 }
+  tables: { export_buttons: [csv, json], link_backing_artifact: true }
+  include:
+    dataset_distribution: true
+    cohort_composition: true
+    fold_composition: true
+    seed_sweep: true
+    hpo: true
+    evaluation: true
