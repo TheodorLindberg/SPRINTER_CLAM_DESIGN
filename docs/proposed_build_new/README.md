@@ -25,6 +25,7 @@ code-level schemas, the Snakemake wiring, the dependency set, and a phased roadm
 | [07 · Reports toolkit](07-reports.md) | The static-HTML + Plotly report builder, `runs.parquet`, faceted indexes, export. |
 | [08 · Testing & roadmap](08-testing-and-roadmap.md) | Test layout, how acceptance criteria become tests, and the phased build order. |
 | [09 · Simplification analysis](09-simplification-analysis.md) | Strict critical review: what to cut/downgrade/keep, the tradeoffs, and what complexity genuinely protects the science. |
+| [10 · Embedding cache](10-embedding-cache-analysis.md) | Focused deep-dive: drop the content-addressed store for a file-level "Snakemake is the cache" scheme; the row-vs-file impedance mismatch and its hazards. |
 
 ## Guiding principles for the build
 
