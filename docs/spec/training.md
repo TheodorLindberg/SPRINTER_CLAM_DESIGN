@@ -38,6 +38,9 @@ groups a sweep's contributing models by when writing one BEAM per biopsy.
 !!! note "Target normalization is optional"
     Controlled by `target_normalization` (default **on**). When **on**, a regression model predicts in normalized space, so the per-fold `mean`/`std` (fit on that fold's train split) **must be stored** — evaluation de-normalizes back to label units, *per checkpoint* before a holdout ensemble averages. When **off** (e.g. to compare), the model trains and predicts directly in raw label units and nothing is stored or de-normalized.
 
+!!! note "Optional per-patch axis features"
+    Controlled by `append_axis_features` (default **off**). When **on**, each patch's biopsy-axis position — `axis_t` (normalized arc-length) and `axis_offset` (lateral distance), see [WSI Transformation spec](wsi-transformation.md#biopsy-axis-skeleton-curve) — is concatenated onto its embedding vector when the bundle's bags are loaded (`BagStore.from_bundle`), **not** baked into the cached embeddings file. `architecture.in_dim` is runtime-injected from the loaded embedding width, so this needs no other config change — just a bundle whose embeddings were produced after `axis_t`/`axis_offset` existed (re-run `preprocess embed` otherwise). The two raw scalars are appended as-is; any richer positional encoding (e.g. Fourier features) is a model-architecture extension, not a config option.
+
 All run records aggregate into **`runs.parquet`** — one row per run, columns = the flattened tags + headline metrics + paths. This is the report backbone and the export table.
 
 ## Metrics by label type

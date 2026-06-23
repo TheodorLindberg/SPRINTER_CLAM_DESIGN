@@ -82,6 +82,12 @@ HPO is kept apart from the seed sweep, because HPO models are rarely looked at a
 
 ---
 
+## Per-patch axis features (optional)
+
+Each patch already carries its position along the biopsy's curved longitudinal axis — a normalized arc-length position (`axis_t`) and a lateral offset from the axis (`axis_offset`), computed in [WSI Transformation](04-wsi-transformation.md). Setting `append_axis_features: true` in the experiment config concatenates these two scalars onto every patch's embedding when its bag is loaded for training, widening the model's input by two dims automatically (no architecture edits needed for the basic case). Off by default; see [Specification](../spec/training.md) for the mechanics and [Open Questions](09-open-questions.md#axis-feature-encoding) for richer positional encodings (e.g. Fourier features) as a documented future extension.
+
+---
+
 ## Label balancing
 
 Training supports correcting for imbalanced targets, configured per run:

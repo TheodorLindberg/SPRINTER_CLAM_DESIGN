@@ -18,6 +18,10 @@ How to merge different input data sources when assembling CLAM training inputs i
 
 The bundle manifest schema — shared by training and evaluation — must be pinned down before implementation. It is deferred on purpose while the surrounding stage contracts settle.
 
+### Axis feature encoding {#axis-feature-encoding}
+
+`append_axis_features` (see [Model Training](06-model-training.md#per-patch-axis-features-optional)) concatenates the two raw biopsy-axis scalars (`axis_t`, `axis_offset`) onto each patch's embedding as-is. Whether a richer positional encoding — e.g. Fourier/sinusoidal features of `axis_t`/`axis_offset`, or a dedicated architecture branch rather than plain concatenation — improves on that is undecided; it would be a MIL-architecture extension (a new `family`/`type` or an encoding step ahead of `build_mil`), not a config option, and is deferred until the plain-concatenation baseline is evaluated.
+
 ---
 
 ## Resolved decisions
@@ -43,6 +47,10 @@ If a future experiment plan sweeps overlap or patch size heavily on the same sca
 ### Metadata scope {#metadata-file-scope}
 
 **Resolved: nested `metadata:` per level in the scan manifest**, forwarded into the bundle and BEAM grouped by level. The manifest is hierarchical (dataset → patient → biopsy → scan), so each value sits at the level it describes, is written once, and keeps its level tag all the way to the [BEAM](../formats/beam.md) `/metadata`. No separate metadata store. See [Data Ingestion · Scan manifest](03-data-ingestion.md#the-scan-manifest).
+
+### Per-patch axis features in training {#axis-features-in-training}
+
+**Resolved: appended at bag-load time, not baked into the embeddings cache.** `axis_t`/`axis_offset` are forwarded from the patch-coords file into the embeddings file as their own optional fields (`shared.io.h5`), but the cached `embeddings` array itself is never altered — appending them onto the feature vector a model trains on is a training-time choice (`BagStore.from_bundle(..., append_axis_features=True)`), so the same cached embeddings serve runs with the feature on or off, and `architecture.in_dim` (already runtime-injected from the loaded embedding width) picks up the wider input with no other change. See [Model Training](06-model-training.md#per-patch-axis-features-optional) and the [training spec](../spec/training.md).
 
 ### Stains per bundle {#stains-per-bundle}
 

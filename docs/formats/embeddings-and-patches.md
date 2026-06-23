@@ -16,8 +16,20 @@ Patch coordinates and patch embeddings are stored as binary **HDF5**, per scan. 
 │     embedding_dim
 │
 ├─ coords ················· (N, 2|4) int     x, y (, w, h) · WSI frame
-└─ embeddings ············· (N, D) float
+├─ embeddings ············· (N, D) float    RAW model output — never altered
+├─ quartile ··············· optional (N,) int8     biopsy-axis region, forwarded from the coords file
+├─ axis_t ················· optional (N,) float32  normalized arc-length position [0,1]
+└─ axis_offset ············ optional (N,) float32   signed lateral distance from the axis curve
 ```
+
+`quartile`/`axis_t`/`axis_offset` are forwarded verbatim from the patch-coords file (see
+[WSI Transformation spec](../spec/wsi-transformation.md#biopsy-axis-skeleton-curve)) — absent
+entirely on a file written before they existed, so older cache entries stay valid. They never
+change the `embeddings` array itself: appending `axis_t`/`axis_offset` onto the feature vector a
+model trains on is a **training-time** decision (`append_axis_features`, see the
+[training spec](../spec/training.md)), made once when a bundle's bags are loaded — not baked into
+this cache, so the same cached embeddings serve both a run that uses axis features and one that
+doesn't.
 
 ---
 

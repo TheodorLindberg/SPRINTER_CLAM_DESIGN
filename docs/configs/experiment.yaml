@@ -18,6 +18,7 @@ defaults:                         # inherited by every run unless overridden
     epochs: 100
   label_balancing: { enabled: true, strategy: bins, n_bins: 4 }
   target_normalization: true        # false → train & predict in raw label units (for comparison)
+  append_axis_features: false       # true → widen each patch embedding with its biopsy-axis axis_t/axis_offset
 
 runs:                             # each: a run_id + the keys it overrides; bundle referenced by components
   - { run_id: he_conch,   bundle: { cohort: prostate_combined_v1, stain: HE,   variant: raw, embedding: conch } }

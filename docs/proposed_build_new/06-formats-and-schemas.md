@@ -89,9 +89,18 @@ encoding into the MIL model — a documented future step, not yet wired into any
 
 ```text
 coords        (N,2|4) int32   matches the coord file
-embeddings    (N,D)   float32 RAW model output — no fitted normalization
+embeddings    (N,D)   float32 RAW model output — no fitted normalization, never altered
+quartile      (N,) int8       optional — forwarded from the coords file
+axis_t        (N,) float32    optional — forwarded from the coords file
+axis_offset   (N,) float32    optional — forwarded from the coords file
 @embedding_model_id @embedding_dim @patch_config_id @patch_size @mpp @source_variant
 ```
+
+`quartile`/`axis_t`/`axis_offset` are absent on a file written before they existed (`read_embeddings`
+returns `None` for each, no re-embedding required). Appending `axis_t`/`axis_offset` onto the
+feature vector fed to a model is a training-time choice (`BagStore.from_bundle(...,
+append_axis_features=True)`, gated by the experiment config's `append_axis_features`) — the cache
+file itself is never rewritten with them folded in.
 
 `shared.io.h5` enforces dtypes and the presence of every attribute on write, and refuses to
 write an `embeddings` array whose row count ≠ `coords` (the
