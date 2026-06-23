@@ -2,7 +2,7 @@
 
 Implementation notes for [Stage 2](../design/04-wsi-transformation.md). [Overview](../design/04-wsi-transformation.md) · [Specification](../spec/wsi-transformation.md) · **Implementation**.
 
-Reference libraries: **VALIS** (registration **and** tissue masking), **OpenCV** (contours), **shapely** (outlines), **tifffile/zarr** (I/O), **numpy** (PCA).
+Reference libraries: **VALIS** (registration **and** tissue masking), **OpenCV** (contours, rasterization), **scikit-image** (skeletonization), **scipy** (sparse shortest-path, connected components), **shapely** (outlines), **tifffile/zarr** (I/O), **numpy** (PCA).
 
 > Design-level notes, not a prescriptive recipe. The contract is the [spec](../spec/wsi-transformation.md); library names below are suggestions, not commitments.
 
@@ -32,17 +32,17 @@ Only the configured `tissue_method` is written into the main tree, at a method-a
 
 Per scan, draw the configured outline on a thumbnail (standard QC). Also emit one HE thumbnail with **all stains' outlines + the intersection** overlaid, to verify cross-stain alignment at a glance. When `debug_compare_methods` is on, a separate overlay with **both methods in different colours** is written to `roots.debug` for side-by-side judgement.
 
-## Biopsy axis (PCA line)
+## Biopsy axis (skeleton curve)
 
-The longitudinal axis of a core, used to cut it into geometric quartiles. It is computed in the **`raw` frame** — the frame training patches are drawn from — so a raw patch's quartile is well defined; registered-frame copies are derived only for visualization ([spec](../spec/wsi-transformation.md#biopsy-axis-pca-line)). The approach:
+The longitudinal **curve** of a core (possibly several islands), used to cut it into ordered regions and to give patches a continuous position. It is computed in the **`raw` frame** — the frame training patches are drawn from — so a raw patch's region is well defined; registered-frame copies are derived only for visualization ([spec](../spec/wsi-transformation.md#biopsy-axis-skeleton-curve)). The approach (`histomil.wsi_transformation.biopsy_axis`):
 
-- Take the raw tissue-pixel (or dense-outline) coordinates, scaled to level-0. The **principal eigenvector** of their covariance — the direction of largest variance — is the long axis. The **variance ratio** (largest eigenvalue / total) measures how line-like the core is.
-- Project every point onto that direction to get a 1-D position along the axis. Its min and max give the core **length** (× `mpp` → mm), and four equal segments between them are the **quartile cuts**.
-- A patch's quartile is found by projecting its centroid onto the axis and seeing which segment it falls in. Optionally, clipping the outline with lines perpendicular to the axis at each cut yields quartile **polygons** for visuals.
-- Store the centroid, direction, `t_min`/`t_max`, length (px and mm), variance ratio, and quartile cuts.
-
-!!! note "Curved cores — skeleton fallback"
-    When the variance ratio is low (a bent or folded core), replace the straight axis with the mask **skeleton** as the path and use **arc-length** quartiles along it. Same stored fields, with the straight direction replaced by a polyline path.
+- Rasterize every kept tissue component onto one working-resolution mask. Components within `max_bridge_gap_mm` of each other are explicitly **bridged** — a line drawn between their closest boundary points — into one connected piece, deliberately not a single oversized morphological closing (whose structuring-element radius would have to match the gap and, at the gaps real fragmentation needs, closes right back into separate slivers — a discretization artifact, not a real bridge).
+- **Skeletonize** the bridged mask (`skimage.morphology.skeletonize`); keep the largest connected skeleton component (any excluded fragment — too far to bridge — is logged, never failed on).
+- Extract the skeleton's **longest path** (its graph diameter, via the standard two-pass shortest-path trick over its 8-connected pixel graph), smooth it, and resample to a compact ordered polyline — the curved axis `path`.
+- The straight-line **principal eigenvector** of the tissue's covariance is *also* computed, purely as the `variance_ratio` diagnostic (largest eigenvalue / total — how line-like the core is); it no longer determines the stored geometry.
+- A patch's **region** is found by projecting its centroid onto the *closest point* of `path` (not a dot product) and binning the resulting arc length by `quartile_cuts` (`n_segments + 1` equal arc-length cuts, `n_segments` configurable, default 4). The same projection's arc length (normalized to `[0, 1]`) and signed lateral offset are the two continuous per-patch scalars (`axis_t`, `axis_offset`) meant as positional information for the model.
+- Store the centroid, direction (the endpoint-to-endpoint chord of `path` — a coarse summary), `path`, `t_min`/`t_max`, length (px and mm), variance ratio, `n_segments`, and `quartile_cuts`.
+- When the skeleton can't be extracted (the `[wsi]` extra isn't installed, or the tissue is too small/degenerate — e.g. a near-circular blob with no clear long axis), **fall back to the straight PCA chord** between the extreme projections — never fails.
 
 !!! note "Colour-PCA quartiles (alternative)"
     A separate option derives quartile *boundaries* from PCA on per-region stain-colour statistics rather than geometry. It emits the same outline/quartile format; geometry-PCA is the default.

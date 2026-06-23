@@ -215,7 +215,7 @@ mismatch is a hard error). Write one `{biopsy_id}__{run_family}.beam.h5` via
 `histomil.shared.formats.beam.BeamWriter` — the writer lives in `shared` so heatmaps and reporting
 read BEAM without importing `histomil.evaluation`
 ([06 BEAM schema](06-formats-and-schemas.md#beam-sharedformatsbeam)): shared provenance attrs +
-`patches/coords` (raw frame, model-fed order, one bag for every model) + outline/quartiles/labels,
+`patches/coords` (raw frame, model-fed order, one bag for every model) + outline/labels,
 plus per-model prediction and attention transforms (`raw`/`sigmoid`/`rank` — **only** for that
 model if attention-based, never faked zeros) under `models/{run_id}/`. HDF5 is appendable for
 later enrichment. Attention extraction logic ported from the old `extract_attention.py`.

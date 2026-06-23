@@ -15,7 +15,7 @@ Runs first, before any bundle or fold. The members are expanded per dataset sour
 
 ## Patch generation
 
-Slide a grid over the outline's bounding box with stride `patch_size × (1 − overlap)`, and keep a patch when its intersection with the tissue outline covers enough of its area. Each kept patch is tagged with its [biopsy-axis](wsi-transformation.md#biopsy-axis-pca-line) quartile (project the patch centre onto the axis). Coordinates and attributes are written to HDF5.
+Slide a grid over the bounding box of the union of every kept tissue component (a biopsy can be several islands), with stride `patch_size × (1 − overlap)`, and keep a patch when its intersection with the outline union covers enough of its area. Each kept patch is tagged with its [biopsy-axis](wsi-transformation.md#biopsy-axis-skeleton-curve) region and continuous position (project the patch centre onto the closest point of the axis curve → region `quartile`, normalized position `axis_t`, lateral offset `axis_offset`). Coordinates and attributes are written to HDF5.
 
 - Coordinates are level-0; pixel reads happen at the configured `level` / `mpp`.
 - Patches near a quartile boundary may be dropped with a small buffer to avoid cross-quartile leakage.

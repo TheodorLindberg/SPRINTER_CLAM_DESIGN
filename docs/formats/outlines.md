@@ -11,22 +11,18 @@ Tissue outlines exist in two representations:
 
 ## Polygon array
 
-An outline is an ordered array of vertices in the WSI frame. When several disjoint tissue regions exist, an outline is a list of such arrays.
+An outline is a **list** of ordered vertex arrays in the WSI frame, one per disjoint tissue component, largest first. A biopsy fragmented during sectioning is several disjoint islands — every component above the minimum area is kept (`keep_islands: true`, default), not just the largest.
 
 ```text
 outline
 │
-├─ polygon ················ (M, 2) float   ordered x, y vertices · WSI frame
-│
-└─ quartiles/ ············· optional · geometric split along biopsy long axis
-   ├─ q0 ················· (M₀, 2) float
-   ├─ q1 ················· (M₁, 2) float
-   ├─ q2 ················· (M₂, 2) float
-   └─ q3 ················· (M₃, 2) float
+└─ components/ ············ one (Mᵢ, 2) float array per kept tissue component
+   ├─ 0 ··················· largest component
+   ├─ 1
+   └─ …
 ```
 
-!!! note "Quartiles are an approximation"
-    The quartile split is **geometric** (along the biopsy's long axis), provided so the per-quartile Ki-67 / PSA scores can be associated with approximate regions. It is **not** ground-truth localization — true per-region mapping is unavailable.
+The per-patch region (`quartile`, `1..n_segments`) and the two continuous per-patch scalars (`axis_t`, `axis_offset`) — the geometric split along the biopsy's curved long axis, bridged across islands — live on the **patch coordinates**, not on the outline itself; see [Embeddings & patches](embeddings-and-patches.md). It is **not** ground-truth localization — true per-region mapping is unavailable unless a pathologist-annotated region polygon is supplied (a documented future extension, reusing this same multi-polygon machinery).
 
 ---
 

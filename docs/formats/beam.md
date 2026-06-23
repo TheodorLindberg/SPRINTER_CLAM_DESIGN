@@ -29,8 +29,7 @@ Produced by [Stage 5 · Evaluation](../design/07-evaluation.md); consumed by rep
 │  └─ size ················ patch size / resolution
 │
 ├─ outline/ ················ shared — polygon arrays, identical to the Outlines spec
-│  ├─ polygon ············· (M, 2) float
-│  └─ quartiles/ ·········· optional · q0 … q3, each (Mᵢ, 2) float
+│  └─ components/ ········· optional · one (Mᵢ, 2) float array per tissue island
 │
 ├─ labels/ ·················· shared — true labels where available · name → value (+ type)
 ├─ embeddings ··············· shared, optional · (N, D) float · else referenced from bundle
@@ -92,7 +91,9 @@ A full copy of that model's contributing `RunRecord` — every field a consumer 
 
 ## Outline
 
-The tissue outline used follows the **exact same layout as the [Outlines spec](outlines.md#polygon-array)** — a `polygon` vertex array, optionally divided into `quartiles/q0 … q3`. GeoJSON is produced only as a separate viewing export, never stored inside BEAM. Shared across every model (the same biopsy).
+The tissue outline used follows the **exact same layout as the [Outlines spec](outlines.md#polygon-array)** — one polygon vertex array per kept tissue component (`outline/components/0, 1, …`, largest first). GeoJSON is produced only as a separate viewing export, never stored inside BEAM. Shared across every model (the same biopsy).
+
+The per-patch region/position (`quartile`/`axis_t`/`axis_offset` — see [Embeddings & patches](embeddings-and-patches.md)) are not currently carried into BEAM's `patches/`: they flow from the coords file into the embeddings file, and BEAM's `patches/coords` is sourced from the embeddings file, which doesn't yet forward them. Wiring that through is deferred alongside the future MIL-architecture work that would actually consume them.
 
 ---
 
@@ -106,8 +107,8 @@ The tissue outline used follows the **exact same layout as the [Outlines spec](o
 | True labels (where available) | `labels/` | shared |
 | Patches | `patches/coords` | shared |
 | Patch size | attr `patch_size` + `patches/size` | shared |
-| Tissue outline used | `outline/` (polygon array) | shared |
-| Quartile | attr `quartile`; `outline/quartiles` when subdivided | shared |
+| Tissue outline used | `outline/components/` (one polygon array per island) | shared |
+| Whole-scan-vs-quartile-bag marker (carried label metadata, not geometry — see root attrs) | attr `quartile` | shared |
 | Stain | attr `stain` | shared |
 | Patient | attr `patient_id` | shared |
 | Sweep + contributing models | attr `run_family`, `model_ids` + `metadata/` | shared |

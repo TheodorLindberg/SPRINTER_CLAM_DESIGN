@@ -10,7 +10,8 @@ wsi_transformation:
     debug_compare_methods: false    # DEBUG ONLY: also run the other method + comparison → roots.debug
     per_stain: true
     cross_stain_intersection: true  # from the elastic overlap; saved per scan
-    quartile_subdivision: true      # geometric split along the biopsy long axis
+    keep_islands: true              # keep every disjoint tissue fragment, bridged into one axis
+    max_bridge_gap_mm: 1.0          # max gap (mm) between fragments still bridged into one axis
     geojson_export: true            # export for TissUUmaps viewing
 
 preprocessing:

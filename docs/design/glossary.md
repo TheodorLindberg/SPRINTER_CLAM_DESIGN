@@ -19,7 +19,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Biopsy** | A tissue sample from one patient; the unit labels and bags are keyed on. |
 | **Label** | A target on a biopsy — `name`, `type`, `value`. Optional. **Derived labels** are computed from raw scores in preprocessing. |
 | **Score quartile** | One of the 4 per-biopsy IHC scores (Ki67/PSA). Spatially unlocated, so **averaged** to a biopsy value; carried only as metadata. |
-| **Geometric quartile** | A spatial 4-way split of the tissue along the [biopsy axis](#images-patches-embeddings) (PCA line). Used for heatmap regions, **not** mapped to score quartiles. |
+| **Geometric quartile** | A spatial split of the tissue, in order, along the [biopsy axis](#images-patches-embeddings) curve (`n_segments`, default 4 — still called "quartile" by convention). Used for heatmap regions and as model input (alongside the continuous `axis_t`/`axis_offset` position), **not** mapped to score quartiles unless a pathologist-annotated region polygon is supplied (future extension). |
 
 ## Images, patches & embeddings
 
@@ -30,7 +30,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | **Source variant** | A scan's form: `raw` (training/metrics), `rigid`, or `elastic` (registered, for heatmaps). See [Data Model](02-data-model.md#source-variants). |
 | **Registration** | Aligning stains; `rigid` (rotation/translation) or `elastic` (warps to H&E). |
 | **Tissue outline** | Polygon array of tissue extent per variant; the **cross-stain intersection** is tissue present in every stain. See [Outlines](../formats/outlines.md). |
-| **Biopsy axis** | The PCA longitudinal line of a biopsy (in the raw/training frame); defines the geometric quartiles. See [WSI Transformation spec](../spec/wsi-transformation.md#biopsy-axis-pca-line). |
+| **Biopsy axis** | The skeleton/medial-axis longitudinal **curve** of a biopsy (in the raw/training frame), fit across every kept tissue island (bridged within a configurable gap); defines the geometric quartiles and the continuous per-patch `axis_t`/`axis_offset` position. See [WSI Transformation spec](../spec/wsi-transformation.md#biopsy-axis-skeleton-curve). |
 | **Patch** | A crop from a scan at a configured size and resolution. |
 | **Embedding** | A feature vector from a patch, produced by an embedding model. |
 | **Embedding cache** | Embeddings stored as one HDF5 per scan × source variant × embedding model × patch config; the file path encodes those identifiers, so the workflow reuses an already-embedded config and a changed config writes a new file. |

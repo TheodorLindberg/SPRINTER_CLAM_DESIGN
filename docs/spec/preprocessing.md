@@ -31,10 +31,13 @@ HDF5, see [Embeddings & patches](../formats/embeddings-and-patches.md). Required
 | Field | Type | Notes |
 |---|---|---|
 | `coords` | int32 `(N, 2)` | x, y of patch top-left, level-0 frame |
+| `quartile` | int8 `(N,)` | region `1..n_segments` from the [biopsy axis](wsi-transformation.md#biopsy-axis-skeleton-curve); 0 = unassigned |
+| `axis_t` | float32 `(N,)` | normalized arc-length position `[0, 1]` along the axis curve; -1 = unassigned |
+| `axis_offset` | float32 `(N,)` | signed lateral distance (px) from the axis curve; -1 = unassigned |
 | attr `patch_size` | int | pixels at `level` |
 | attr `level` / `mpp` | int / float | pyramid level and microns-per-pixel |
 | attr `source_variant` | str | `raw` / `rigid` / `elastic` |
-| attr `quartile` | int8 `(N,)` | 1–4 from the [biopsy axis](wsi-transformation.md#biopsy-axis-pca-line); 0 = unassigned |
+| attr `n_segments` | int | cardinality of `quartile` (default 4) |
 
 ## Embeddings (per scan · variant · model · patch config)
 

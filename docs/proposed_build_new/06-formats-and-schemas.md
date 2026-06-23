@@ -18,7 +18,7 @@ configs/manifests get a `pydantic` model; tabular invariants get an explicit ass
 | Embeddings | HDF5 | `io.h5` | [embeddings-and-patches](../formats/embeddings-and-patches.md) |
 | Outlines | polygon array + GeoJSON | `formats.outline` (+ `io.geojson`) | [outlines](../formats/outlines.md) |
 | Transform | JSON | `config` (pydantic) | [wsi-transformation](../spec/wsi-transformation.md#artifacts-per-scan-per-variant) |
-| Biopsy axis | JSON | `config` (pydantic) | [wsi-transformation](../spec/wsi-transformation.md#biopsy-axis-pca-line) |
+| Biopsy axis | JSON | `config` (pydantic) | [wsi-transformation](../spec/wsi-transformation.md#biopsy-axis-skeleton-curve) |
 | Bundle manifest | CSV | `checks.bundle` | [preprocessing](../spec/preprocessing.md#bundle-a-prepared-cohort) |
 | Bundle metadata | JSON | `config` (pydantic) | [preprocessing](../spec/preprocessing.md) |
 | Folds | CSV | `checks.folds` | [training](../spec/training.md#fold-assignment-the-generate_folds-rule) |
@@ -72,9 +72,18 @@ matches), so collapsing to plain functions loses nothing and removes a dependenc
 
 ```text
 coords        (N,2) int32     x,y top-left, level-0 frame
+quartile      (N,) int8       region 1..n_segments; 0 unassigned
+axis_t        (N,) float32    normalized arc-length position [0,1]; -1 unassigned
+axis_offset   (N,) float32    signed lateral distance from the axis curve (px); -1 unassigned
 @patch_size   int             @level int   @mpp float
-@source_variant str           @quartile (N,) int8   # 1–4; 0 unassigned
+@source_variant str           @n_segments int   # cardinality of `quartile`, default 4
 ```
+
+`quartile`/`axis_t`/`axis_offset` are **datasets**, not attributes — an HDF5 attribute has a
+~64KB header-size limit, too small for a per-patch array at realistic WSI patch counts.
+`axis_t`/`axis_offset` are the continuous positional signals (meant for e.g. Fourier/positional
+encoding into the MIL model — a documented future step, not yet wired into any architecture);
+`quartile` is the same projection binned into a coarse, backward-compatible bucket.
 
 ### embeddings
 
@@ -101,7 +110,7 @@ own prediction/attention/stats into the same file, under `models/{run_id}/`:
                 evaluation_tag, membership_hash, git_commit, stain, source_variant,
                 patch_config_id, patch_size, patch_resolution, quartile
   patches/coords (N,2|4) int   patches/size              # shared — one bag, every model
-  outline/polygon (M,2) float  outline/quartiles/q0..q3  # shared, optional
+  outline/components/0,1,…    (Mᵢ,2) float                # shared, optional — one per tissue island
   labels/      name → value (+type)                       # shared, when available
   embeddings   (N,D) float                                # shared, optional
   metadata/{dataset,patient,biopsy,scan}/                  # shared, forwarded manifest metadata
@@ -135,9 +144,12 @@ class Transform(BaseModel):
 
 # shared/config.py (axis model)  — fields verbatim from the wsi-transformation spec
 class BiopsyAxis(BaseModel):
-    centroid: tuple[float,float]; direction: tuple[float,float]
-    t_min: float; t_max: float; length_px: float; length_mm: float
-    variance_ratio: float; quartile_cuts: list[float]   # len 5, monotonic
+    centroid: tuple[float,float]; direction: tuple[float,float]   # coarse chord summary
+    path: list[tuple[float,float]]      # the curve itself, >= 2 ordered vertices
+    t_min: float; t_max: float; length_px: float; length_mm: float   # arc length along `path`
+    variance_ratio: float               # straight-line PCA diagnostic only
+    n_segments: int = 4
+    quartile_cuts: list[float]          # len n_segments + 1, monotonic
 
 # shared/config.py (runs model) — run.json (flattened into runs.parquet rows)
 # run_id = f"{run_family}__fs{fold_seed}__ms{model_seed}"; run_family is the
