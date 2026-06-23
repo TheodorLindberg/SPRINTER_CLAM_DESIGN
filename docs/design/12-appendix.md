@@ -39,7 +39,7 @@ Each entry: **what** we decided and **why**.
 
 ### Formats
 
-- **BEAM** — the project's per-biopsy, per-model HDF5 evaluation format; appendable; outline stored as polygon arrays. *Why:* one self-describing, extensible result file.
+- **BEAM** — the project's per-biopsy, per-sweep HDF5 evaluation format; appendable; outline stored as polygon arrays; every contributing model in the sweep keeps its own prediction/attention/stats under `models/{run_id}/`. *Why:* one self-describing, extensible result file per biopsy, not fragmented across every model in a sweep.
 - **Binary is the source of truth; GeoJSON is the view** (TissUUmaps). *Why:* performance + a clean separation from visualization.
 
 ### Experiments, runs, reports

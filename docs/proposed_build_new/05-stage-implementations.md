@@ -182,9 +182,11 @@ Optuna study (TPE) over `hpo.space`, objective = mean val metric across a CV sub
 
 ## Stage 5 · Evaluation (`histomil.evaluation`)
 
-Contract: [`spec/evaluation.md`](../spec/evaluation.md). One BEAM per `(biopsy, run)`.
+Contract: [`spec/evaluation.md`](../spec/evaluation.md). One BEAM per `(biopsy, sweep)` — every
+model (fold_seed × model_seed) of one experiment-config run entry (`run_family`) writes its own
+prediction/attention/stats into the same file, under `models/{run_id}/`.
 
-### `routing.py` **[new]** — checkpoint routing (the crux)
+### `routing.py` **[new]** — checkpoint routing (the crux), computed per model
 
 | `subset` | Rule |
 |---|---|
@@ -192,23 +194,31 @@ Contract: [`spec/evaluation.md`](../spec/evaluation.md). One BEAM per `(biopsy, 
 | `holdout` | scored by **all** fold checkpoints, aggregated (default mean); record contributors |
 | `all` | single full-data checkpoint |
 
+Unchanged from before — just run **once per contributing model** in the sweep (each model has its
+own per-fold checkpoints).
+
 ### `infer.py` **[adapt]** — `infer`
 
 Organised **per model, not per patient**: load each checkpoint **once**, batch through every
-patient it owns; reuse the load-once `bagstore`. Loading checkpoints once **and** embeddings once
-is what keeps eval off the I/O floor. Validate run stain == bundle stain first.
+patient it owns; reuse the load-once `bagstore`. The same load-once discipline extends across the
+sweep's models, since they all share one bundle — bags are loaded once and reused for every
+contributing model, not just every checkpoint within one model. Validate run stain == bundle
+stain first, for every contributing model.
 
 ### `aggregate.py` **[new]** + `shared.formats.beam` — `aggregate_beam`
 
-De-normalize each checkpoint's prediction with its own stored stats **before** combining
-(holdout = mean across checkpoints; dev/all = single checkpoint). Write one
-`{biopsy_id}__{run_id}.beam.h5` via `histomil.shared.formats.beam.BeamWriter` — the writer lives
-in `shared` so heatmaps and reporting read BEAM without importing `histomil.evaluation`
-([06 BEAM schema](06-formats-and-schemas.md#beam-sharedformatsbeam)): provenance
-attrs, `patches/coords` in the **raw frame** in model-fed order, prediction, attention transforms
-(`raw`/`sigmoid`/`rank` — **only** for attention models, never faked zeros), outline + quartiles,
-true label when present. HDF5 is appendable for later enrichment. Attention extraction logic
-ported from the old `extract_attention.py`.
+For each contributing model independently: de-normalize each checkpoint's prediction with its own
+stored stats **before** combining (holdout = mean across that model's checkpoints; dev/all =
+single checkpoint) — never blended across models. Assert every contributing model's `RunRecord`
+agrees on `run_family`/`bundle_id`/`cohort_id`/`membership_hash`/`subset` (a sweep invariant; a
+mismatch is a hard error). Write one `{biopsy_id}__{run_family}.beam.h5` via
+`histomil.shared.formats.beam.BeamWriter` — the writer lives in `shared` so heatmaps and reporting
+read BEAM without importing `histomil.evaluation`
+([06 BEAM schema](06-formats-and-schemas.md#beam-sharedformatsbeam)): shared provenance attrs +
+`patches/coords` (raw frame, model-fed order, one bag for every model) + outline/quartiles/labels,
+plus per-model prediction and attention transforms (`raw`/`sigmoid`/`rank` — **only** for that
+model if attention-based, never faked zeros) under `models/{run_id}/`. HDF5 is appendable for
+later enrichment. Attention extraction logic ported from the old `extract_attention.py`.
 
 ---
 

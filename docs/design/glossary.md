@@ -55,7 +55,7 @@ Definitions of the terms and abbreviations used across the spec. Where a term ha
 | Term | Meaning |
 |---|---|
 | **Manifest** | The IDs → paths table that is the pipeline contract; carries metadata columns at any level. |
-| **BEAM** | The per-biopsy, per-model HDF5 evaluation result format. See [BEAM](../formats/beam.md). |
+| **BEAM** | The per-biopsy, per-sweep HDF5 evaluation result format — every model in the sweep contributes its own prediction/attention/stats. See [BEAM](../formats/beam.md). |
 | **`runs.parquet`** | The master, tagged index of every run — the report backbone and export table. |
 | **Provenance / membership hash** | Recorded inputs (config, git commit, seeds) and the cohort's frozen-membership hash used for stale-split detection. |
 

@@ -20,7 +20,7 @@ Stored at `results/folds/…` and read by every run of that fold_seed; **not** i
 ## Run record (`run.json`, one per run)
 
 ```text
-run_id, model_experiment, bundle_id, cohort_id
+run_id, run_family, model_experiment, bundle_id, cohort_id
 target, subset, seed_set, fold_seed, model_seed
 architecture { family, type, params }
 hyperparameters { ... }
@@ -29,6 +29,11 @@ metrics { train, val, test: {<metric>: value} }
 checkpoints { fold_k: path }
 membership_hash, git_commit, started_at, finished_at
 ```
+
+`run_id` is the fully-realized per-model id (`f"{run_family}__fs{fold_seed}__ms{model_seed}"`);
+`run_family` is the experiment-config run entry id (e.g. `"ki67_conch"`), shared by every
+`fold_seed`/`model_seed` combination the seed sweep fans out into — what [evaluation](evaluation.md)
+groups a sweep's contributing models by when writing one BEAM per biopsy.
 
 !!! note "Target normalization is optional"
     Controlled by `target_normalization` (default **on**). When **on**, a regression model predicts in normalized space, so the per-fold `mean`/`std` (fit on that fold's train split) **must be stored** — evaluation de-normalizes back to label units, *per checkpoint* before a holdout ensemble averages. When **off** (e.g. to compare), the model trains and predicts directly in raw label units and nothing is stored or de-normalized.

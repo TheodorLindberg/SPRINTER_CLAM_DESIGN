@@ -1,15 +1,15 @@
 # Stage 5 · Evaluation
 
-Once models are trained, this stage measures how good they actually are. It runs a trained model over the biopsies and, for each one, records the prediction it made and which patches it paid attention to, saving all of that as one result file per biopsy — a **BEAM** file. Those files are the raw material for both the performance reports here and the [heatmaps](08-heatmaps.md) in the next stage.
+Once models are trained, this stage measures how good they actually are. It runs every model in a seed sweep over the biopsies and, for each biopsy, records each model's prediction and which patches it paid attention to, saving all of that as one result file per biopsy — a **BEAM** file holding every contributing model's prediction/attention/stats side by side. Those files are the raw material for both the performance reports here and the [heatmaps](08-heatmaps.md) in the next stage.
 
-> **In** a bundle (chosen subset) + a trained run · **Out** one BEAM file per biopsy per run, + reports
+> **In** a bundle (chosen subset) + a trained seed sweep · **Out** one BEAM file per biopsy per sweep (every model's contribution inside), + reports
 
 *Go deeper: [Specification](../spec/evaluation.md) · [Implementation](../impl/evaluation.md).*
 
 ```mermaid
 flowchart LR
-    INF[Inference\nper-scan H5] --> AGG[Aggregate\nper-biopsy, per-model]
-    AGG --> BEAM[BEAM file\n.beam.h5]
+    INF[Inference\nper-scan H5, per model] --> AGG[Aggregate\nper-biopsy, per-sweep]
+    AGG --> BEAM[BEAM file\n.beam.h5\nmodels/{run_id}/ per model]
     BEAM --> REP[Reports]
     BEAM --> HM[Stage 6 · Heatmaps]
 ```
@@ -33,13 +33,13 @@ flowchart LR
 
 ### Output
 
-One **BEAM file per biopsy per model**, plus aggregate reports.
+One **BEAM file per biopsy per sweep** — every model in the sweep contributes its own prediction/attention/stats into that one file — plus aggregate reports.
 
 ---
 
 ## The BEAM format
 
-BEAM — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-run result format: one appendable HDF5 file holding the prediction, per-patch attention (for attention models), patch coordinates, the tissue outline, true labels where available, and full provenance. HDF5 is used because it is appendable — later enrichment steps add datasets without breaking existing readers.
+BEAM — *Biopsy Evaluation & Attention Map* — is the project's own per-biopsy, per-sweep result format: one appendable HDF5 file holding, per contributing model, its prediction and per-patch attention (for attention models) under `models/{run_id}/`, plus the patch coordinates, tissue outline, true labels where available, and full provenance shared by every model in the sweep. HDF5 is used because it is appendable — later enrichment steps add datasets without breaking existing readers.
 
 Its layout, datasets, and attributes are defined once in the **[BEAM format](../formats/beam.md)**; how each value is produced (checkpoint routing, aggregation, de-normalization) is the **[evaluation spec](../spec/evaluation.md)**.
 

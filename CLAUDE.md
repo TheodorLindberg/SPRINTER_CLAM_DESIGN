@@ -67,7 +67,7 @@ The scan manifest (Stage 1 ingestion, IDs → WSI path) is the pipeline contract
 
 Binary is the source of truth; GeoJSON is the TissUUmaps view (pipeline never computes from GeoJSON).
 - Embeddings → HDF5. Patch coordinates → HDF5. Tissue outlines → **polygon arrays** (+ GeoJSON export). Transform matrices → JSON.
-- **BEAM** = the project's own per-biopsy, per-model evaluation result format. Stored as HDF5, `{biopsy_id}__{model_id}.beam.h5`. Contains attention (raw/sigmoid/rank), prediction, labels, patch coords, outline (polygon array, divisible into quartiles), metadata. Appendable by design. (Name is provisional — easy to rename.)
+- **BEAM** = the project's own per-biopsy, per-**sweep** evaluation result format. Stored as HDF5, `{biopsy_id}__{run_family}.beam.h5` — one BEAM covers every model (fold_seed × model_seed) of one seed sweep, each contributing its own prediction + attention (raw/sigmoid/rank) + full stats under `models/{run_id}/`. Patch coords, outline (polygon array, divisible into quartiles), labels, and metadata are shared by every model in the file. Appendable by design. (Name is provisional — easy to rename.)
 - Detailed format specs live in `docs/formats/` (beam, embeddings-and-patches, outlines) — kept separate so design docs stay overview-level. Stage docs give rough bullets + a link.
 
 ## Reports & experiments

@@ -90,28 +90,38 @@ write an `embeddings` array whose row count ≠ `coords` (the
 
 ### BEAM (`shared.formats.beam`)
 
-Exact layout from [`formats/beam.md`](../formats/beam.md):
+Exact layout from [`formats/beam.md`](../formats/beam.md). One BEAM per **(biopsy, sweep)** —
+every `fold_seed × model_seed` model of one experiment-config run entry (`run_family`) writes its
+own prediction/attention/stats into the same file, under `models/{run_id}/`:
 
 ```text
-{biopsy_id}__{run_id}.beam.h5
-  @ root attrs: format_version, biopsy/patient/dataset_id, run_id, model_experiment,
-                bundle_id, cohort_id, embedding_model_id, checkpoints_used, subset,
+{biopsy_id}__{run_family}.beam.h5
+  @ root attrs: format_version, biopsy/patient/dataset_id, run_family, model_ids,
+                model_experiment, bundle_id, cohort_id, embedding_model_id, subset,
                 evaluation_tag, membership_hash, git_commit, stain, source_variant,
                 patch_config_id, patch_size, patch_resolution, quartile
-  patches/coords (N,2|4) int   patches/size
-  attention/{raw,sigmoid,rank} (N,) float     # iff attention architecture
-  outline/polygon (M,2) float  outline/quartiles/q0..q3
-  prediction
-  labels/      name → value (+type)           # when available
-  embeddings   (N,D) float                    # optional; else referenced from bundle
-  metadata/{dataset,patient,biopsy,scan}/     # forwarded manifest metadata, grouped by level
+  patches/coords (N,2|4) int   patches/size              # shared — one bag, every model
+  outline/polygon (M,2) float  outline/quartiles/q0..q3  # shared, optional
+  labels/      name → value (+type)                       # shared, when available
+  embeddings   (N,D) float                                # shared, optional
+  metadata/{dataset,patient,biopsy,scan}/                  # shared, forwarded manifest metadata
+  models/
+    {run_id}/                                              # one group per contributing model
+      @ fold_seed, model_seed, checkpoints_used, git_commit,
+        architecture_json, hyperparameters_json,
+        target_normalization_json, metrics_json            # JSON-encoded RunRecord copy
+      prediction
+      attention/{raw,sigmoid,rank} (N,) float               # iff THAT model's attention architecture
 ```
 
-`BeamWriter` guarantees: `/attention` present **iff** architecture is attention-based (never
-zeros); `patches/coords` equal the bundle embedding coords in the same order; `prediction` in
-label units (de-normalized when `target_normalization` was on). `BeamReader` is the single entry
-point reporting and heatmaps use — they depend on `histomil.shared`, never on
-`histomil.evaluation`.
+`BeamWriter` guarantees: a model's `attention/` present **iff** that model's architecture is
+attention-based (never zeros — a sweep may mix attention and non-attention models); `model_ids`
+computed by the writer from what was written, never hand-supplied; `patches/coords` equal the
+bundle embedding coords in the same order, shared by every model; each model's `prediction` in
+label units (de-normalized using that model's own `target_normalization` when it was on); every
+contributing model's `RunRecord` agrees on `run_family`/`bundle_id`/`cohort_id`/`membership_hash`/
+`subset` (a mismatch is a hard error). `BeamReader` is the single entry point reporting and
+heatmaps use — they depend on `histomil.shared`, never on `histomil.evaluation`.
 
 ## JSON artifacts
 
@@ -130,8 +140,11 @@ class BiopsyAxis(BaseModel):
     variance_ratio: float; quartile_cuts: list[float]   # len 5, monotonic
 
 # shared/config.py (runs model) — run.json (flattened into runs.parquet rows)
+# run_id = f"{run_family}__fs{fold_seed}__ms{model_seed}"; run_family is the
+# experiment-config run entry id (e.g. "ki67_conch") shared by its whole seed sweep
+# — what BEAM groups a sweep's contributing models by.
 class RunRecord(BaseModel):
-    run_id: str; model_experiment: str; bundle_id: str; cohort_id: str
+    run_id: str; run_family: str; model_experiment: str; bundle_id: str; cohort_id: str
     target: str; subset: str; seed_set: str; fold_seed: int; model_seed: int
     architecture: dict; hyperparameters: dict
     target_normalization: dict          # {enabled, per-fold mean/std | class_map}
